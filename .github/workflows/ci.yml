@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        # GPU tests skip themselves when the runner has no usable adapter.
+        run: cargo test --workspace
+
+  features:
+    name: Feature combinations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Kiosk-only app (no winit)
+        run: cargo check -p hansolo --no-default-features --features kiosk
+      - name: Desktop-only app
+        run: cargo check -p hansolo --no-default-features --features desktop
+      - name: Hashing without GPU and ASIC
+        run: cargo check -p hansolo-hash --no-default-features
+
+  cross:
+    name: Kiosk build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      # ring and secp256k1-sys compile C; zig is the cross C compiler.
+      - uses: mlugg/setup-zig@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - name: Build
+        run: cargo zigbuild -p hansolo --release --no-default-features --features kiosk --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hansolo-kiosk-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hansolo
+          if-no-files-found: error
