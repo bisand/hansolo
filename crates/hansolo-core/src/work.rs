@@ -69,8 +69,9 @@ impl Work {
 
     /// The full coinbase transaction (non-witness serialisation) for an extranonce.
     pub fn coinbase(&self, extranonce: &[u8]) -> Vec<u8> {
-        let mut tx =
-            Vec::with_capacity(self.coinbase_prefix.len() + extranonce.len() + self.coinbase_suffix.len());
+        let mut tx = Vec::with_capacity(
+            self.coinbase_prefix.len() + extranonce.len() + self.coinbase_suffix.len(),
+        );
         tx.extend_from_slice(&self.coinbase_prefix);
         tx.extend_from_slice(extranonce);
         tx.extend_from_slice(&self.coinbase_suffix);

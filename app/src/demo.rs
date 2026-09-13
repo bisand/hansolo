@@ -25,10 +25,22 @@ pub fn snapshot(seconds: u64) -> MinerSnapshot {
     let net = Target::from_compact(bits).difficulty();
 
     let log_lines = [
-        (LogLevel::Info, "Starting (Stratum), paying to bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"),
-        (LogLevel::Info, "Detected Apple M5 Pro: 14 cores, ARMv8 SHA2, NEON; GPU Apple M5 Pro (Metal)"),
-        (LogLevel::Info, "Benchmark: armv8-sha2 58.1 MH/s per thread, scalar 9.9 MH/s"),
-        (LogLevel::Info, "Benchmark: GPU Metal 780 MH/s at intensity 6"),
+        (
+            LogLevel::Info,
+            "Starting (Stratum), paying to bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+        ),
+        (
+            LogLevel::Info,
+            "Detected Apple M5 Pro: 14 cores, ARMv8 SHA2, NEON; GPU Apple M5 Pro (Metal)",
+        ),
+        (
+            LogLevel::Info,
+            "Benchmark: armv8-sha2 58.1 MH/s per thread, scalar 9.9 MH/s",
+        ),
+        (
+            LogLevel::Info,
+            "Benchmark: GPU Metal 780 MH/s at intensity 6",
+        ),
         (LogLevel::Success, "Connected to public-pool.io:21496"),
         (LogLevel::Info, "New block 915,344 — clean jobs"),
         (LogLevel::Success, "Share accepted, difficulty 1.84 M"),
@@ -49,8 +61,16 @@ pub fn snapshot(seconds: u64) -> MinerSnapshot {
         .map(|i| ShareRecord {
             at: now - Duration::from_secs(900 - i * 37),
             difficulty: 1.0e6 * (1.0 + ((i * 7919) % 97) as f64 / 9.0),
-            device: if i % 3 == 0 { "GPU · Apple M5 Pro".into() } else { "CPU · Apple M5 Pro".into() },
-            result: if i == 17 { ShareResult::Stale } else { ShareResult::Accepted },
+            device: if i % 3 == 0 {
+                "GPU · Apple M5 Pro".into()
+            } else {
+                "CPU · Apple M5 Pro".into()
+            },
+            result: if i == 17 {
+                ShareResult::Stale
+            } else {
+                ShareResult::Accepted
+            },
         })
         .collect();
 

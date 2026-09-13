@@ -162,9 +162,15 @@ mod tests {
     fn base_text_is_readable_in_both_themes() {
         for theme in [DIM, LIGHT] {
             for surface in [Role::Base100, Role::Base200, Role::Base300] {
-                let ratio =
-                    denise::theme::contrast_x100(theme.color(surface), theme.color(Role::BaseContent));
-                assert!(ratio >= denise::theme::AA, "{} {surface:?}: {ratio}", theme.name);
+                let ratio = denise::theme::contrast_x100(
+                    theme.color(surface),
+                    theme.color(Role::BaseContent),
+                );
+                assert!(
+                    ratio >= denise::theme::AA,
+                    "{} {surface:?}: {ratio}",
+                    theme.name
+                );
             }
         }
     }

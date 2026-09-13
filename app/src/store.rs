@@ -52,7 +52,10 @@ impl Store {
     }
 
     pub fn save_config(&self, config: &Config) -> Result<(), String> {
-        write(&self.config_path, &toml::to_string_pretty(config).map_err(|e| e.to_string())?)
+        write(
+            &self.config_path,
+            &toml::to_string_pretty(config).map_err(|e| e.to_string())?,
+        )
     }
 
     pub fn load_state(&self) -> State {
@@ -63,7 +66,10 @@ impl Store {
     }
 
     pub fn save_state(&self, state: &State) -> Result<(), String> {
-        write(&self.state_path, &toml::to_string_pretty(state).map_err(|e| e.to_string())?)
+        write(
+            &self.state_path,
+            &toml::to_string_pretty(state).map_err(|e| e.to_string())?,
+        )
     }
 }
 

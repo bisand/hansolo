@@ -6,12 +6,14 @@
 //! should: where input is read relative to the display wait is a decision with
 //! a measurable cost.
 
-use std::os::fd::{BorrowedFd, RawFd};
-use denise::{ElementState, InputEvent, InputSource, KeyCode, PixelFormat, Rect, Size, Surface, SurfaceError};
+use denise::{
+    ElementState, InputEvent, InputSource, KeyCode, PixelFormat, Rect, Size, Surface, SurfaceError,
+};
 use denise_drm::{DrmSurface, PresentMode, SurfaceConfig};
 use denise_evdev::{Console, InputBackend};
 use denise_fbdev::FbdevSurface;
 use rustix::event::{PollFd, PollFlags, Timespec, poll};
+use std::os::fd::{BorrowedFd, RawFd};
 
 use crate::app::{App, Setup};
 
@@ -20,7 +22,9 @@ const SHOT_PATH: &str = "/tmp/hansolo.ppm";
 /// Whether this machine looks like it has a display to take over.
 pub fn available() -> bool {
     std::fs::read_dir("/dev/dri")
-        .map(|mut entries| entries.any(|e| e.is_ok_and(|e| e.file_name().to_string_lossy().starts_with("card"))))
+        .map(|mut entries| {
+            entries.any(|e| e.is_ok_and(|e| e.file_name().to_string_lossy().starts_with("card")))
+        })
         .unwrap_or(false)
         || std::path::Path::new("/dev/fb0").exists()
 }
@@ -33,14 +37,25 @@ enum Display {
 
 impl Display {
     fn open() -> Result<Self, String> {
-        match DrmSurface::open(SurfaceConfig { present_mode: PresentMode::Vsync, ..SurfaceConfig::default() }) {
+        match DrmSurface::open(SurfaceConfig {
+            present_mode: PresentMode::Vsync,
+            ..SurfaceConfig::default()
+        }) {
             Ok(drm) => {
-                eprintln!("display DRM/KMS {} — {} buffers", drm.mode_name(), drm.buffer_count());
+                eprintln!(
+                    "display DRM/KMS {} — {} buffers",
+                    drm.mode_name(),
+                    drm.buffer_count()
+                );
                 Ok(Display::Drm(drm))
             }
             Err(drm_error) => match FbdevSurface::open_first() {
                 Ok(fb) => {
-                    eprintln!("display fbdev {} ({}); no DRM: {drm_error}", fb.info(), fb.path().display());
+                    eprintln!(
+                        "display fbdev {} ({}); no DRM: {drm_error}",
+                        fb.info(),
+                        fb.path().display()
+                    );
                     Ok(Display::Fbdev(fb))
                 }
                 Err(fb_error) => Err(format!("no display — DRM: {drm_error}; fbdev: {fb_error}")),
@@ -87,7 +102,10 @@ fn mute_console() -> Option<Console> {
         return None;
     }
     let mut console = Console::open_if_present()?;
-    if let Err(e) = console.mute_keyboard().and_then(|()| console.graphics_mode()) {
+    if let Err(e) = console
+        .mute_keyboard()
+        .and_then(|()| console.graphics_mode())
+    {
         eprintln!("console found but not muted: {e}");
     }
     Some(console)
@@ -120,13 +138,18 @@ pub fn run(setup: Setup) -> Result<(), Box<dyn std::error::Error>> {
             fds = input.raw_fds();
         }
         let wait = app.next_wake_in();
-        let timeout = Timespec { tv_sec: wait.as_secs() as i64, tv_nsec: wait.subsec_nanos() as i64 };
+        let timeout = Timespec {
+            tv_sec: wait.as_secs() as i64,
+            tv_nsec: wait.subsec_nanos() as i64,
+        };
         let mut poll_fds: Vec<PollFd<'_>> = fds
             .iter()
             // SAFETY: `input` keeps every one of these descriptors open until a
             // rescan, which sets `devices_changed` and refreshes `fds` above
             // before the next poll.
-            .map(|&fd| PollFd::from_borrowed_fd(unsafe { BorrowedFd::borrow_raw(fd) }, PollFlags::IN))
+            .map(|&fd| {
+                PollFd::from_borrowed_fd(unsafe { BorrowedFd::borrow_raw(fd) }, PollFlags::IN)
+            })
             .collect();
         match poll(&mut poll_fds, Some(&timeout)) {
             Ok(_) | Err(rustix::io::Errno::INTR) => {}
@@ -137,7 +160,12 @@ pub fn run(setup: Setup) -> Result<(), Box<dyn std::error::Error>> {
         events.clear();
         input.poll(&mut events);
         for event in &events {
-            if let InputEvent::Key { code, state: ElementState::Down, .. } = event {
+            if let InputEvent::Key {
+                code,
+                state: ElementState::Down,
+                ..
+            } = event
+            {
                 match code {
                     KeyCode::Escape if app.wants_exit_on_escape() => {
                         app.miner.stop();
@@ -159,7 +187,11 @@ pub fn run(setup: Setup) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn present(surface: &mut Display, app: &mut App, shoot: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn present(
+    surface: &mut Display,
+    app: &mut App,
+    shoot: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut frame = surface.acquire()?;
     app.ui.paint(&mut frame);
     if shoot {

@@ -86,7 +86,12 @@ KEYS:
 ";
 
 fn parse_args() -> Result<Args, String> {
-    let mut args = Args { ui: None, config: None, demo: false, snapshot: None };
+    let mut args = Args {
+        ui: None,
+        config: None,
+        demo: false,
+        snapshot: None,
+    };
     let mut snapshot: Option<Snapshot> = None;
     let mut it = std::env::args().skip(1);
     let value = |it: &mut std::iter::Skip<std::env::Args>, flag: &str| {
@@ -120,11 +125,16 @@ fn parse_args() -> Result<Args, String> {
             }
             "--size" | "--scale" | "--page" | "--theme" => {
                 let v = value(&mut it, &arg)?;
-                let s = snapshot.as_mut().ok_or_else(|| format!("{arg} only applies to --snapshot"))?;
+                let s = snapshot
+                    .as_mut()
+                    .ok_or_else(|| format!("{arg} only applies to --snapshot"))?;
                 match arg.as_str() {
                     "--size" => {
                         let (w, h) = v.split_once('x').ok_or("--size is WxH")?;
-                        s.size = Size::new(w.parse().map_err(|_| "bad width")?, h.parse().map_err(|_| "bad height")?);
+                        s.size = Size::new(
+                            w.parse().map_err(|_| "bad width")?,
+                            h.parse().map_err(|_| "bad height")?,
+                        );
                     }
                     "--scale" => s.scale = v.parse().map_err(|_| "bad scale")?,
                     "--page" => s.page = v.parse().map_err(|_| "bad page")?,
@@ -178,7 +188,11 @@ fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let backend = args.ui.unwrap_or_else(auto_backend);
-    eprintln!("hansolo {} · ui {backend:?} · config {}", env!("CARGO_PKG_VERSION"), store.config_path().display());
+    eprintln!(
+        "hansolo {} · ui {backend:?} · config {}",
+        env!("CARGO_PKG_VERSION"),
+        store.config_path().display()
+    );
     if backend == Backend::Headless {
         return headless::run(miner, config, &store);
     }
@@ -198,13 +212,18 @@ fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         Backend::Window => desktop::run(setup),
         #[cfg(all(feature = "kiosk", target_os = "linux"))]
         Backend::Kiosk => kiosk::run(setup),
-        other => Err(format!("this build has no {other:?} backend; rebuild with its feature, or use --ui headless").into()),
+        other => Err(format!(
+            "this build has no {other:?} backend; rebuild with its feature, or use --ui headless"
+        )
+        .into()),
     }
 }
 
 /// See the module docs for the rule.
 fn auto_backend() -> Backend {
-    let has_session = ["WAYLAND_DISPLAY", "DISPLAY"].iter().any(|v| std::env::var_os(v).is_some_and(|s| !s.is_empty()));
+    let has_session = ["WAYLAND_DISPLAY", "DISPLAY"]
+        .iter()
+        .any(|v| std::env::var_os(v).is_some_and(|s| !s.is_empty()));
     if (cfg!(not(target_os = "linux")) || has_session) && cfg!(feature = "desktop") {
         return Backend::Window;
     }
@@ -212,7 +231,11 @@ fn auto_backend() -> Backend {
     if kiosk::available() {
         return Backend::Kiosk;
     }
-    if cfg!(feature = "desktop") && cfg!(not(target_os = "linux")) { Backend::Window } else { Backend::Headless }
+    if cfg!(feature = "desktop") && cfg!(not(target_os = "linux")) {
+        Backend::Window
+    } else {
+        Backend::Headless
+    }
 }
 
 fn new_clipboard(windowed: bool) -> Box<dyn app::Clipboard> {
@@ -229,7 +252,10 @@ fn new_clipboard(windowed: bool) -> Box<dyn app::Clipboard> {
 fn snapshot(setup: Setup, shot: &Snapshot) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::Write as _;
 
-    let size = Size::new((shot.size.width as f32 * shot.scale) as u32, (shot.size.height as f32 * shot.scale) as u32);
+    let size = Size::new(
+        (shot.size.width as f32 * shot.scale) as u32,
+        (shot.size.height as f32 * shot.scale) as u32,
+    );
     let mut app = App::new(setup, size, shot.scale);
     app.ui.show_cursor(false);
     app.ui.clear_toasts();
@@ -245,9 +271,13 @@ fn snapshot(setup: Setup, shot: &Snapshot) -> Result<(), Box<dyn std::error::Err
 
     let mut pixels = vec![0u32; (size.width * size.height) as usize];
     {
-        let mut frame =
-            denise::Frame::new(&mut pixels, size, size.width, denise::PixelFormat::Xrgb8888, denise::BufferAge::Undefined)
-                ?;
+        let mut frame = denise::Frame::new(
+            &mut pixels,
+            size,
+            size.width,
+            denise::PixelFormat::Xrgb8888,
+            denise::BufferAge::Undefined,
+        )?;
         app.ui.paint(&mut frame);
     }
     let mut out = std::io::BufWriter::new(std::fs::File::create(&shot.path)?);

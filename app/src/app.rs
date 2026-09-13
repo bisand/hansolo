@@ -103,7 +103,15 @@ pub struct Setup {
 
 impl App {
     pub fn new(setup: Setup, size: Size, scale: f32) -> Self {
-        let Setup { store, config, miner, faces, windowed, clipboard, demo } = setup;
+        let Setup {
+            store,
+            config,
+            miner,
+            faces,
+            windowed,
+            clipboard,
+            demo,
+        } = setup;
         let scale = config.ui.scale.unwrap_or(scale);
         let system_theme = SystemTheme::start(windowed);
         // Give the sampler a moment so a light desktop does not open dark and flip.
@@ -164,7 +172,10 @@ impl App {
             app.start();
         } else if app.config.payout_address.trim().is_empty() {
             app.select_page(PAGE_SETTINGS);
-            app.ui.toast("Welcome! Enter a payout address to start mining.", Role::Info);
+            app.ui.toast(
+                "Welcome! Enter a payout address to start mining.",
+                Role::Info,
+            );
         }
         app.refresh(true);
         app
@@ -179,10 +190,14 @@ impl App {
         let mut resized = None;
         for event in events {
             match event {
-                InputEvent::SurfaceResized { size, scale_factor } => resized = Some((*size, *scale_factor)),
-                InputEvent::Key { code: KeyCode::F5, state: ElementState::Down, .. } => {
-                    self.handle(Message::StartStop)
+                InputEvent::SurfaceResized { size, scale_factor } => {
+                    resized = Some((*size, *scale_factor))
                 }
+                InputEvent::Key {
+                    code: KeyCode::F5,
+                    state: ElementState::Down,
+                    ..
+                } => self.handle(Message::StartStop),
                 _ => {}
             }
         }
@@ -203,7 +218,8 @@ impl App {
         }
 
         let revision = self.miner.revision();
-        if revision != self.last_revision && self.last_refresh.elapsed() >= Duration::from_millis(250)
+        if revision != self.last_revision
+            && self.last_refresh.elapsed() >= Duration::from_millis(250)
             || self.last_refresh.elapsed() >= Duration::from_secs(1)
         {
             self.last_revision = revision;
@@ -214,7 +230,10 @@ impl App {
     /// How long a loop may sleep: the tree's own deadline, or the next refresh.
     pub fn next_wake_in(&self) -> Duration {
         let now = self.elapsed_ms();
-        let tree = self.ui.next_wake_ms().map(|at| Duration::from_millis(at.saturating_sub(now)));
+        let tree = self
+            .ui
+            .next_wake_ms()
+            .map(|at| Duration::from_millis(at.saturating_sub(now)));
         let refresh = Duration::from_millis(if self.miner.is_running() { 500 } else { 1000 });
         tree.map_or(refresh, |t| t.min(refresh))
     }
@@ -227,7 +246,9 @@ impl App {
     fn handle(&mut self, message: Message) {
         match message {
             Message::Tab(i) => self.select_page(i),
-            Message::StartStop if self.demo => self.ui.toast("This is a demo; run without --demo to mine.", Role::Info),
+            Message::StartStop if self.demo => self
+                .ui
+                .toast("This is a demo; run without --demo to mine.", Role::Info),
             Message::StartStop => {
                 if self.miner.is_running() {
                     self.miner.stop();
@@ -238,12 +259,20 @@ impl App {
             }
             Message::Detect => self.miner.detect_hardware(&self.config),
             Message::OpenTheme => {
-                let from = if self.page == PAGE_SETTINGS { self.nodes.form.theme } else { self.nodes.theme_select };
+                let from = if self.page == PAGE_SETTINGS {
+                    self.nodes.form.theme
+                } else {
+                    self.nodes.theme_select
+                };
                 open_select(&mut self.ui, from, Message::Theme);
             }
             Message::Theme(i) => {
                 self.ui.close_popup();
-                let preference = [ThemePreference::System, ThemePreference::Dark, ThemePreference::Light][i.min(2)];
+                let preference = [
+                    ThemePreference::System,
+                    ThemePreference::Dark,
+                    ThemePreference::Light,
+                ][i.min(2)];
                 self.draft.ui.theme = preference;
                 self.config.ui.theme = preference;
                 for id in [self.nodes.theme_select, self.nodes.form.theme] {
@@ -273,13 +302,19 @@ impl App {
                 self.set_select(self.nodes.form.preset, i);
                 let url = PRESETS[i].1;
                 if !url.is_empty()
-                    && let Some(field) = self.ui.widget_mut::<TextInput<Message>>(self.nodes.form.url)
+                    && let Some(field) = self
+                        .ui
+                        .widget_mut::<TextInput<Message>>(self.nodes.form.url)
                 {
                     field.set_text(url);
                 }
             }
             Message::OpenCpuBackend => {
-                open_select(&mut self.ui, self.nodes.form.cpu_backend, Message::CpuBackend);
+                open_select(
+                    &mut self.ui,
+                    self.nodes.form.cpu_backend,
+                    Message::CpuBackend,
+                );
             }
             Message::CpuBackend(i) => {
                 self.ui.close_popup();
@@ -319,7 +354,8 @@ impl App {
         if self.config.payout_address.trim().is_empty() {
             self.select_page(PAGE_SETTINGS);
             self.ui.focus(Some(self.nodes.form.address));
-            self.ui.toast("Enter a payout address first.", Role::Warning);
+            self.ui
+                .toast("Enter a payout address first.", Role::Warning);
             return;
         }
         match self.miner.start(self.config.clone()) {
@@ -329,7 +365,9 @@ impl App {
                     self.select_page(0);
                 }
             }
-            Err(e) => self.ui.toast_for(format!("Could not start: {e}"), Role::Error, 6000),
+            Err(e) => self
+                .ui
+                .toast_for(format!("Could not start: {e}"), Role::Error, 6000),
         }
         self.refresh(true);
     }
@@ -339,9 +377,13 @@ impl App {
         for (i, &node) in self.nodes.pages.iter().enumerate() {
             self.ui.set_visible(node, i == self.page);
         }
-        if let Some(tabs) = self.ui.widget::<denise_ui::widgets::Tabs<Message>>(self.nodes.tabs)
+        if let Some(tabs) = self
+            .ui
+            .widget::<denise_ui::widgets::Tabs<Message>>(self.nodes.tabs)
             && tabs.selected() != self.page
-            && let Some(tabs) = self.ui.widget_mut::<denise_ui::widgets::Tabs<Message>>(self.nodes.tabs)
+            && let Some(tabs) = self
+                .ui
+                .widget_mut::<denise_ui::widgets::Tabs<Message>>(self.nodes.tabs)
         {
             tabs.set_selected(self.page);
         }
@@ -373,10 +415,20 @@ impl App {
             let bold = Some(self.styles.title.font);
             let mono = Some(self.styles.mono.font);
             self.styles = Styles::new(scale, bold, mono);
-            self.ui.set_theme(self.system_theme.resolve(self.config.ui.theme).scaled(scale));
+            self.ui.set_theme(
+                self.system_theme
+                    .resolve(self.config.ui.theme)
+                    .scaled(scale),
+            );
         }
         let _ = size;
-        self.nodes = view::build(&mut self.ui, &self.styles, &self.draft, self.page, self.windowed);
+        self.nodes = view::build(
+            &mut self.ui,
+            &self.styles,
+            &self.draft,
+            self.page,
+            self.windowed,
+        );
         self.cache = Default::default();
         self.refresh(true);
     }
@@ -385,10 +437,19 @@ impl App {
     fn read_form(&mut self) {
         let f = &self.nodes.form;
         let read = |ui: &Ui<Message>, id: NodeId| {
-            ui.widget::<TextInput<Message>>(id).map(|w| w.text().trim().to_string()).unwrap_or_default()
+            ui.widget::<TextInput<Message>>(id)
+                .map(|w| w.text().trim().to_string())
+                .unwrap_or_default()
         };
-        let selected = |ui: &Ui<Message>, id: NodeId| ui.widget::<Select<Message>>(id).and_then(|s| s.selected()).unwrap_or(0);
-        let checked = |ui: &Ui<Message>, id: NodeId| ui.widget::<Toggle<Message>>(id).is_some_and(|t| t.checked());
+        let selected = |ui: &Ui<Message>, id: NodeId| {
+            ui.widget::<Select<Message>>(id)
+                .and_then(|s| s.selected())
+                .unwrap_or(0)
+        };
+        let checked = |ui: &Ui<Message>, id: NodeId| {
+            ui.widget::<Toggle<Message>>(id)
+                .is_some_and(|t| t.checked())
+        };
 
         let ui = &self.ui;
         let d = &mut self.draft;
@@ -412,7 +473,11 @@ impl App {
             WorkSource::Stratum {
                 url: read(ui, f.url),
                 username: (!username.is_empty()).then_some(username),
-                password: if password.is_empty() { "x".into() } else { password },
+                password: if password.is_empty() {
+                    "x".into()
+                } else {
+                    password
+                },
             }
         };
         d.cpu.enabled = checked(ui, f.cpu);
@@ -423,11 +488,16 @@ impl App {
             i => Some(CPU_BACKENDS[i].to_string()),
         };
         d.gpu.enabled = checked(ui, f.gpu);
-        d.gpu.intensity = ui.widget::<Slider<Message>>(f.intensity).map_or(d.gpu.intensity, |s| s.value().round() as u8);
+        d.gpu.intensity = ui
+            .widget::<Slider<Message>>(f.intensity)
+            .map_or(d.gpu.intensity, |s| s.value().round() as u8);
         d.asic.enabled = checked(ui, f.asic);
         d.asic.usb = checked(ui, f.usb);
-        d.asic.network_devices =
-            read(ui, f.network_devices).split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+        d.asic.network_devices = read(ui, f.network_devices)
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
         d.autostart = checked(ui, f.autostart);
     }
 
@@ -441,7 +511,9 @@ impl App {
         } else {
             match &self.draft.source {
                 WorkSource::Stratum { url, .. } if url.is_empty() => Some("The pool needs a URL."),
-                WorkSource::Node { rpc_url, .. } if rpc_url.is_empty() => Some("The node needs an RPC URL."),
+                WorkSource::Node { rpc_url, .. } if rpc_url.is_empty() => {
+                    Some("The node needs an RPC URL.")
+                }
                 _ => None,
             }
         };
@@ -455,7 +527,10 @@ impl App {
                 let path = self.store.config_path().display().to_string();
                 self.form_message(&format!("Saved to {path}"), Tone::Role(Role::Success));
             }
-            Err(e) => self.form_message(&format!("Applied, but not saved: {e}"), Tone::Role(Role::Warning)),
+            Err(e) => self.form_message(
+                &format!("Applied, but not saved: {e}"),
+                Tone::Role(Role::Warning),
+            ),
         }
         true
     }
@@ -472,7 +547,9 @@ impl App {
         match request {
             ClipboardRequest::Copy(text) | ClipboardRequest::Cut(text) => self.clipboard.set(&text),
             ClipboardRequest::Paste => {
-                let Some(text) = self.clipboard.get() else { return };
+                let Some(text) = self.clipboard.get() else {
+                    return;
+                };
                 let text = text.replace(['\n', '\r'], "");
                 if let Some(focused) = self.ui.focused()
                     && let Some(field) = self.ui.widget_mut::<TextInput<Message>>(focused)
@@ -490,7 +567,10 @@ impl App {
         } else {
             self.miner.snapshot()
         };
-        let best = snapshot.shares.best_difficulty.max(snapshot.shares.best_ever_difficulty);
+        let best = snapshot
+            .shares
+            .best_difficulty
+            .max(snapshot.shares.best_ever_difficulty);
         if best > self.state.best_ever_difficulty * 1.000_001 {
             self.state.best_ever_difficulty = best;
             if let Err(e) = self.store.save_state(&self.state) {
@@ -503,7 +583,6 @@ impl App {
     pub fn show_page(&mut self, page: usize) {
         self.select_page(page);
     }
-
 }
 
 /// A shape check, not validation: the engine parses the address properly.
@@ -511,5 +590,7 @@ fn plausible_address(address: &str) -> bool {
     let lower = address.to_ascii_lowercase();
     let bech32 = ["bc1", "tb1", "bcrt1"].iter().any(|p| lower.starts_with(p));
     let base58 = address.starts_with(['1', '3', 'm', 'n', '2']);
-    (bech32 || base58) && (26..=90).contains(&address.len()) && address.chars().all(|c| c.is_ascii_alphanumeric())
+    (bech32 || base58)
+        && (26..=90).contains(&address.len())
+        && address.chars().all(|c| c.is_ascii_alphanumeric())
 }
