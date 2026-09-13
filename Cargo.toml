@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = ["crates/hansolo-core", "crates/hansolo-hash", "crates/hansolo-engine", "app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+authors = ["André Biseth <andre@biseth.net>"]
+
+[workspace.dependencies]
+hansolo-core = { path = "crates/hansolo-core" }
+hansolo-hash = { path = "crates/hansolo-hash" }
+hansolo-engine = { path = "crates/hansolo-engine" }
+
+denise = { version = "0.25", features = ["std"] }
+denise-ui = { version = "0.25", features = ["truetype", "raster"] }
+denise-text = { version = "0.25", features = ["truetype"] }
+denise-winit = "0.25"
+denise-drm = "0.25"
+denise-fbdev = "0.25"
+denise-evdev = "0.25"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+hex = "0.4"
+thiserror = "2"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "sync", "macros"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+# Hashing loops are unusable unoptimised; keep dev builds of the hot crates fast.
+[profile.dev.package.hansolo-core]
+opt-level = 3
+[profile.dev.package.hansolo-hash]
+opt-level = 3

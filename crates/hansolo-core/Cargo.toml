@@ -1,0 +1,14 @@
+[package]
+name = "hansolo-core"
+description = "Shared contract for HanSolo: SHA-256 primitives, targets, work units, the device trait and the UI snapshot."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+hex.workspace = true
+parking_lot.workspace = true
+crossbeam-channel.workspace = true

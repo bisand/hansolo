@@ -1,0 +1,6 @@
+[package]
+name = "hansolo"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

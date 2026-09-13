@@ -1,0 +1,13 @@
+[package]
+name = "hansolo-engine"
+description = "The HanSolo mining engine: Stratum v1 and getblocktemplate work sources, share handling and statistics."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+hansolo-core.workspace = true
+hansolo-hash.workspace = true
+parking_lot.workspace = true

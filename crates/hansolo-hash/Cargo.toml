@@ -1,0 +1,11 @@
+[package]
+name = "hansolo-hash"
+description = "Hashing devices for HanSolo: CPU paths chosen at run time, GPU compute, ASICs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+hansolo-core.workspace = true
