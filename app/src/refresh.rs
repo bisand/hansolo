@@ -278,7 +278,7 @@ fn dashboard(
         ui,
         n.lottery_lines[0],
         &format!(
-            "{} of {}",
+            "{} / {}",
             format::difficulty(best_ever),
             format::difficulty(net_diff)
         ),
@@ -286,7 +286,7 @@ fn dashboard(
     set_text(
         ui,
         n.lottery_lines[1],
-        &format!("{} of {} needed", bits(best_ever), bits(net_diff)),
+        &format!("{} / {}", bits(best_ever), bits(net_diff)),
     );
     set_text(
         ui,
