@@ -30,7 +30,11 @@ pub fn run(miner: Miner, config: Config, store: &Store) -> Result<(), Box<dyn st
         std::thread::sleep(Duration::from_millis(500));
         let snapshot = miner.snapshot();
         let since = printed_until;
-        for entry in snapshot.log.iter().filter(|e| since.is_none_or(|t| e.at > t)) {
+        for entry in snapshot
+            .log
+            .iter()
+            .filter(|e| since.is_none_or(|t| e.at > t))
+        {
             let level = match entry.level {
                 LogLevel::Debug => "debug",
                 LogLevel::Info => "info ",
@@ -38,7 +42,11 @@ pub fn run(miner: Miner, config: Config, store: &Store) -> Result<(), Box<dyn st
                 LogLevel::Warning => "warn ",
                 LogLevel::Error => "error",
             };
-            eprintln!("{} {level} {}", crate::format::clock(entry.at), entry.message);
+            eprintln!(
+                "{} {level} {}",
+                crate::format::clock(entry.at),
+                entry.message
+            );
             printed_until = Some(entry.at);
         }
         if last_status.elapsed() >= Duration::from_secs(10) {

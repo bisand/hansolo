@@ -29,7 +29,11 @@ struct Window(App);
 impl DeniseApp for Window {
     fn update(&mut self, events: &[InputEvent], damage: &mut DamageTracker) {
         for event in events {
-            if let InputEvent::Key { code: KeyCode::Escape, state: ElementState::Down, .. } = event
+            if let InputEvent::Key {
+                code: KeyCode::Escape,
+                state: ElementState::Down,
+                ..
+            } = event
                 && self.0.wants_exit_on_escape()
             {
                 // Escape clears focus first; it only ever quits from an idle window

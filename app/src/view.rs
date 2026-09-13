@@ -28,7 +28,15 @@ pub const PRESETS: [(&str, &str); 4] = [
     ("eusolo.ckpool.org", "stratum+tcp://eusolo.ckpool.org:3333"),
     ("Custom", ""),
 ];
-pub const CPU_BACKENDS: [&str; 7] = ["Automatic", "scalar", "sha-ni", "armv8-sha2", "neon", "avx2", "avx512"];
+pub const CPU_BACKENDS: [&str; 7] = [
+    "Automatic",
+    "scalar",
+    "sha-ni",
+    "armv8-sha2",
+    "neon",
+    "avx2",
+    "avx512",
+];
 
 pub fn theme_index(preference: ThemePreference) -> usize {
     match preference {
@@ -185,7 +193,11 @@ fn card(ui: &mut Ui<Message>, st: &Styles, parent: NodeId, rect: Rect, title: &s
     let title_h = st.u(20);
     let mut top = pad;
     if !title.is_empty() {
-        ui.add(node, Text::new(title, st.title), Rect::new(pad, pad - st.u(2), rect.width - 2 * pad, title_h));
+        ui.add(
+            node,
+            Text::new(title, st.title),
+            Rect::new(pad, pad - st.u(2), rect.width - 2 * pad, title_h),
+        );
         top += title_h + st.u(10);
     }
     Card {
@@ -212,18 +224,41 @@ fn key_value(
 ) -> NodeId {
     let h = st.u(22);
     let label_w = (width * 2 / 5).min(st.u(170));
-    text(ui, parent, Text::new(label, st.body).muted(), Rect::new(x, y, label_w, h));
+    text(
+        ui,
+        parent,
+        Text::new(label, st.body).muted(),
+        Rect::new(x, y, label_w, h),
+    );
     let style = if mono { st.mono } else { st.body };
-    text(ui, parent, Text::new("—", style), Rect::new(x + label_w, y, width - label_w, h))
+    text(
+        ui,
+        parent,
+        Text::new("—", style),
+        Rect::new(x + label_w, y, width - label_w, h),
+    )
 }
 
 /// Splits `width` into `n` columns with `gap` between them.
 fn columns(x: i32, width: i32, n: i32, gap: i32) -> Vec<(i32, i32)> {
     let w = (width - gap * (n - 1)) / n;
-    (0..n).map(|i| (x + i * (w + gap), if i == n - 1 { width - i * (w + gap) } else { w })).collect()
+    (0..n)
+        .map(|i| {
+            (
+                x + i * (w + gap),
+                if i == n - 1 { width - i * (w + gap) } else { w },
+            )
+        })
+        .collect()
 }
 
-pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, windowed: bool) -> Nodes {
+pub fn build(
+    ui: &mut Ui<Message>,
+    st: &Styles,
+    draft: &Config,
+    page: usize,
+    windowed: bool,
+) -> Nodes {
     let size: Size = ui.size();
     let (w, h) = (size.width as i32, size.height as i32);
     let root = ui.root();
@@ -232,7 +267,11 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     // The page ground, oversized so its rounded corners are off the surface.
     let r = u(24);
     let container = ui
-        .add(root, Panel::filled(Role::Base200), Rect::new(-r, -r, w + 2 * r, h + 2 * r))
+        .add(
+            root,
+            Panel::filled(Role::Base200),
+            Rect::new(-r, -r, w + 2 * r, h + 2 * r),
+        )
         .expect("ground");
     let origin = |rect: Rect| rect.translate(r, r);
 
@@ -250,8 +289,17 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         origin(Rect::new(-r, -r, w + 2 * r, header_h + r)),
     );
     let margin = u(20);
-    ui.add(container, Logo::new(st.big), origin(Rect::new(margin, (header_h - u(38)) / 2, u(38), u(38))));
-    text(ui, container, Text::new("HanSolo", st.brand), origin(Rect::new(margin + u(50), u(12), u(220), u(24))));
+    ui.add(
+        container,
+        Logo::new(st.big),
+        origin(Rect::new(margin, (header_h - u(38)) / 2, u(38), u(38))),
+    );
+    text(
+        ui,
+        container,
+        Text::new("HanSolo", st.brand),
+        origin(Rect::new(margin + u(50), u(12), u(220), u(24))),
+    );
     text(
         ui,
         container,
@@ -265,7 +313,9 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let start_stop = ui
         .add(
             container,
-            Button::new("Start mining", Message::StartStop).with_role(Role::Primary).with_style(st.title),
+            Button::new("Start mining", Message::StartStop)
+                .with_role(Role::Primary)
+                .with_style(st.title),
             origin(Rect::new(w - margin - button_w, y_mid, button_w, field_h)),
         )
         .expect("start");
@@ -276,7 +326,12 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
             Select::new(THEMES, Message::OpenTheme)
                 .with_selected(Some(theme_index(draft.ui.theme)))
                 .with_style(st.body),
-            origin(Rect::new(w - margin - button_w - u(12) - select_w, y_mid, select_w, field_h)),
+            origin(Rect::new(
+                w - margin - button_w - u(12) - select_w,
+                y_mid,
+                select_w,
+                field_h,
+            )),
         )
         .expect("theme");
     let right_edge = w - margin - button_w - u(24) - select_w;
@@ -284,15 +339,27 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let status_badge = ui
         .add(
             container,
-            Badge::new("Stopped").with_role(Role::Neutral).with_style(st.small),
-            origin(Rect::new(right_edge - badge_w, (header_h - u(24)) / 2, badge_w, u(24))),
+            Badge::new("Stopped")
+                .with_role(Role::Neutral)
+                .with_style(st.small),
+            origin(Rect::new(
+                right_edge - badge_w,
+                (header_h - u(24)) / 2,
+                badge_w,
+                u(24),
+            )),
         )
         .expect("badge");
     let uptime = text(
         ui,
         container,
         Text::new("", st.small).muted().align(Align::End),
-        origin(Rect::new(right_edge - badge_w - u(170), (header_h - u(20)) / 2, u(160), u(20))),
+        origin(Rect::new(
+            right_edge - badge_w - u(170),
+            (header_h - u(20)) / 2,
+            u(160),
+            u(20),
+        )),
     );
     // The title block and the status share a narrow window; the uptime goes first.
     if right_edge - badge_w - u(170) < margin + u(270) {
@@ -304,8 +371,15 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let tabs = ui
         .add(
             container,
-            Tabs::new(PAGES, Message::Tab).with_selected(page).with_style(st.body),
-            origin(Rect::new(margin, tabs_y, (w - 2 * margin).min(u(720)), field_h)),
+            Tabs::new(PAGES, Message::Tab)
+                .with_selected(page)
+                .with_style(st.body),
+            origin(Rect::new(
+                margin,
+                tabs_y,
+                (w - 2 * margin).min(u(720)),
+                field_h,
+            )),
         )
         .expect("tabs");
 
@@ -323,7 +397,16 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         origin(Rect::new(-r, h - footer_h, w + 2 * r, footer_h + r)),
     );
     let footer_dot = ui
-        .add(container, Dot::new(Role::Neutral), origin(Rect::new(margin, h - footer_h + (footer_h - u(12)) / 2, u(12), u(12))))
+        .add(
+            container,
+            Dot::new(Role::Neutral),
+            origin(Rect::new(
+                margin,
+                h - footer_h + (footer_h - u(12)) / 2,
+                u(12),
+                u(12),
+            )),
+        )
         .expect("dot");
     let footer = text(
         ui,
@@ -343,7 +426,9 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let content = Rect::new(0, content_y, w, h - footer_h - content_y);
     let mut pages = Vec::new();
     for i in 0..PAGES.len() {
-        let page_node = ui.add(container, Panel::bare(), origin(content)).expect("page");
+        let page_node = ui
+            .add(container, Panel::bare(), origin(content))
+            .expect("page");
         ui.set_visible(page_node, i == page);
         pages.push(page_node);
     }
@@ -352,7 +437,13 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
 
     // ------------------------------------------------ dashboard
     let dash = pages[0];
-    let n = if inner_w >= u(1000) { 4 } else if inner_w >= u(520) { 2 } else { 1 };
+    let n = if inner_w >= u(1000) {
+        4
+    } else if inner_w >= u(520) {
+        2
+    } else {
+        1
+    };
     let stat_h = u(118);
     let titles = ["Hashrate", "Best share", "Shares", "Block odds today"];
     let mut stat_values = Vec::new();
@@ -362,9 +453,24 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         let (x, cw) = cols[i % n as usize];
         let y = (i as i32 / n) * (stat_h + gap);
         let c = card(ui, st, dash, Rect::new(x, y, cw, stat_h), "");
-        text(ui, c.node, Text::new(*title, st.small).muted(), Rect::new(c.inner.x, c.inner.y - u(2), c.inner.width, u(18)));
-        stat_values.push(text(ui, c.node, Text::new("—", st.value), Rect::new(c.inner.x, c.inner.y + u(18), c.inner.width, u(40))));
-        stat_subs.push(text(ui, c.node, Text::new("", st.small).muted(), Rect::new(c.inner.x, c.inner.y + u(62), c.inner.width, u(18))));
+        text(
+            ui,
+            c.node,
+            Text::new(*title, st.small).muted(),
+            Rect::new(c.inner.x, c.inner.y - u(2), c.inner.width, u(18)),
+        );
+        stat_values.push(text(
+            ui,
+            c.node,
+            Text::new("—", st.value),
+            Rect::new(c.inner.x, c.inner.y + u(18), c.inner.width, u(40)),
+        ));
+        stat_subs.push(text(
+            ui,
+            c.node,
+            Text::new("", st.small).muted(),
+            Rect::new(c.inner.x, c.inner.y + u(62), c.inner.width, u(18)),
+        ));
     }
     let mut y = ((titles.len() as i32 + n - 1) / n) * (stat_h + gap);
 
@@ -376,7 +482,10 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
             Rect::new(margin + inner_w - side_w, y, side_w, row_h),
         )
     } else {
-        (Rect::new(margin, y, inner_w, row_h), Rect::new(margin, y + row_h + gap, inner_w, row_h))
+        (
+            Rect::new(margin, y, inner_w, row_h),
+            Rect::new(margin, y + row_h + gap, inner_w, row_h),
+        )
     };
     let c = card(ui, st, dash, chart_rect, "Hashrate, last 15 minutes");
     let chart_legend = text(
@@ -385,25 +494,46 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         Text::new("", st.small).muted().align(Align::End),
         Rect::new(c.inner.x, u(16), c.inner.width, u(20)),
     );
-    let chart = ui.add(c.node, Chart::new(st.small, 900), c.inner).expect("chart");
+    let chart = ui
+        .add(c.node, Chart::new(st.small, 900), c.inner)
+        .expect("chart");
 
     let c = card(ui, st, dash, lottery_rect, "Lottery ticket");
     let ring = (c.inner.height - u(8)).min(u(140)).min(c.inner.width / 2);
     let lottery_ring = ui
         .add(
             c.node,
-            RadialProgress::new(0.0).with_label("0%").with_role(Role::Primary).with_thickness(u(12)).with_style(st.big),
+            RadialProgress::new(0.0)
+                .with_label("0%")
+                .with_role(Role::Primary)
+                .with_thickness(u(12))
+                .with_style(st.big),
             Rect::new(c.inner.x, c.inner.y, ring, ring),
         )
         .expect("ring");
     let tx = c.inner.x + ring + u(18);
     let tw = c.inner.width - ring - u(18);
     let mut lottery_lines = Vec::new();
-    let captions = ["Best share vs. block", "Zero bits", "Chance this year", "Expected wait"];
+    let captions = [
+        "Best share vs. block",
+        "Zero bits",
+        "Chance this year",
+        "Expected wait",
+    ];
     for (i, caption) in captions.iter().enumerate() {
         let ly = c.inner.y + i as i32 * u(36);
-        text(ui, c.node, Text::new(*caption, st.small).muted(), Rect::new(tx, ly, tw, u(16)));
-        lottery_lines.push(text(ui, c.node, Text::new("—", st.title), Rect::new(tx, ly + u(16), tw, u(18))));
+        text(
+            ui,
+            c.node,
+            Text::new(*caption, st.small).muted(),
+            Rect::new(tx, ly, tw, u(16)),
+        );
+        lottery_lines.push(text(
+            ui,
+            c.node,
+            Text::new("—", st.title),
+            Rect::new(tx, ly + u(16), tw, u(18)),
+        ));
     }
     text(
         ui,
@@ -421,9 +551,15 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let dev_h = (content.height - y - gap).max(u(240));
     let conn_w = u(380);
     let (dev_rect, conn_rect) = if inner_w >= u(900) {
-        (Rect::new(margin, y, inner_w - conn_w - gap, dev_h), Rect::new(margin + inner_w - conn_w, y, conn_w, dev_h))
+        (
+            Rect::new(margin, y, inner_w - conn_w - gap, dev_h),
+            Rect::new(margin + inner_w - conn_w, y, conn_w, dev_h),
+        )
     } else {
-        (Rect::new(margin, y, inner_w, dev_h), Rect::new(margin, y + dev_h + gap, inner_w, u(300)))
+        (
+            Rect::new(margin, y, inner_w, dev_h),
+            Rect::new(margin, y + dev_h + gap, inner_w, u(300)),
+        )
     };
     let c = card(ui, st, dash, dev_rect, "Devices");
     let devices = ui
@@ -443,14 +579,36 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
 
     let c = card(ui, st, dash, conn_rect, "Connection");
     let conn_dot = ui
-        .add(c.node, Dot::new(Role::Neutral), Rect::new(c.inner.right() - u(12), u(20), u(12), u(12)))
+        .add(
+            c.node,
+            Dot::new(Role::Neutral),
+            Rect::new(c.inner.right() - u(12), u(20), u(12), u(12)),
+        )
         .expect("dot");
     let mut conn_values = Vec::new();
-    for (i, label) in ["Source", "Server", "Worker", "Latency", "Share difficulty", "Network difficulty", "Block height", "Last work"]
-        .iter()
-        .enumerate()
+    for (i, label) in [
+        "Source",
+        "Server",
+        "Worker",
+        "Latency",
+        "Share difficulty",
+        "Network difficulty",
+        "Block height",
+        "Last work",
+    ]
+    .iter()
+    .enumerate()
     {
-        conn_values.push(key_value(ui, st, c.node, c.inner.x, c.inner.y + i as i32 * u(26), c.inner.width, label, false));
+        conn_values.push(key_value(
+            ui,
+            st,
+            c.node,
+            c.inner.x,
+            c.inner.y + i as i32 * u(26),
+            c.inner.width,
+            label,
+            false,
+        ));
     }
     let dash_bottom = conn_rect.bottom().max(dev_rect.bottom()) + gap;
     if dash_bottom > content.height {
@@ -467,23 +625,71 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         ((margin, inner_w), (margin, inner_w))
     };
     let sys_h = u(300);
-    let c = card(ui, st, hw, Rect::new(left.0, 0, left.1, sys_h), "This machine");
+    let c = card(
+        ui,
+        st,
+        hw,
+        Rect::new(left.0, 0, left.1, sys_h),
+        "This machine",
+    );
     let mut hw_values = Vec::new();
-    for (i, label) in ["Operating system", "Architecture", "Processor", "Cores", "Memory"].iter().enumerate() {
-        hw_values.push(key_value(ui, st, c.node, c.inner.x, c.inner.y + i as i32 * u(26), c.inner.width, label, false));
+    for (i, label) in [
+        "Operating system",
+        "Architecture",
+        "Processor",
+        "Cores",
+        "Memory",
+    ]
+    .iter()
+    .enumerate()
+    {
+        hw_values.push(key_value(
+            ui,
+            st,
+            c.node,
+            c.inner.x,
+            c.inner.y + i as i32 * u(26),
+            c.inner.width,
+            label,
+            false,
+        ));
     }
     let fy = c.inner.y + 5 * u(26) + u(10);
-    text(ui, c.node, Text::new("SHA-256 relevant instruction sets", st.small).muted(), Rect::new(c.inner.x, fy, c.inner.width, u(18)));
+    text(
+        ui,
+        c.node,
+        Text::new("SHA-256 relevant instruction sets", st.small).muted(),
+        Rect::new(c.inner.x, fy, c.inner.width, u(18)),
+    );
     let hw_features = ui
-        .add(c.node, Pills::new(st.small), Rect::new(c.inner.x, fy + u(24), c.inner.width, c.inner.bottom() - fy - u(24)))
+        .add(
+            c.node,
+            Pills::new(st.small),
+            Rect::new(
+                c.inner.x,
+                fy + u(24),
+                c.inner.width,
+                c.inner.bottom() - fy - u(24),
+            ),
+        )
         .expect("pills");
 
     let strat_y = if two { 0 } else { sys_h + gap };
-    let c = card(ui, st, hw, Rect::new(right.0, strat_y, right.1, sys_h), "Strategy");
+    let c = card(
+        ui,
+        st,
+        hw,
+        Rect::new(right.0, strat_y, right.1, sys_h),
+        "Strategy",
+    );
     let strategy = text(
         ui,
         c.node,
-        Text::new("Hardware is benchmarked when mining starts; the fastest path wins.", st.body).wrapped(),
+        Text::new(
+            "Hardware is benchmarked when mining starts; the fastest path wins.",
+            st.body,
+        )
+        .wrapped(),
         Rect::new(c.inner.x, c.inner.y, c.inner.width, u(64)),
     );
     let detect = ui
@@ -494,20 +700,40 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         )
         .expect("detect");
     let bars = ui
-        .add(c.node, Bars::new(st.small), Rect::new(c.inner.x, c.inner.y + u(74), c.inner.width, c.inner.height - u(74)))
+        .add(
+            c.node,
+            Bars::new(st.small),
+            Rect::new(
+                c.inner.x,
+                c.inner.y + u(74),
+                c.inner.width,
+                c.inner.height - u(74),
+            ),
+        )
         .expect("bars");
 
     let tables_y = strat_y + sys_h + gap;
     let (gpu_rect, asic_rect) = if two {
-        (Rect::new(left.0, tables_y, left.1, u(220)), Rect::new(right.0, tables_y, right.1, u(220)))
+        (
+            Rect::new(left.0, tables_y, left.1, u(220)),
+            Rect::new(right.0, tables_y, right.1, u(220)),
+        )
     } else {
-        (Rect::new(margin, tables_y, inner_w, u(220)), Rect::new(margin, tables_y + u(220) + gap, inner_w, u(220)))
+        (
+            Rect::new(margin, tables_y, inner_w, u(220)),
+            Rect::new(margin, tables_y + u(220) + gap, inner_w, u(220)),
+        )
     };
     let c = card(ui, st, hw, gpu_rect, "Graphics processors");
     let gpus = ui
         .add(
             c.node,
-            Table::<Message>::inert([Column::flex("GPU"), Column::new("API", u(80)), Column::new("Use", u(160))]).with_style(st.body),
+            Table::<Message>::inert([
+                Column::flex("GPU"),
+                Column::new("API", u(80)),
+                Column::new("Use", u(160)),
+            ])
+            .with_style(st.body),
             c.inner,
         )
         .expect("gpus");
@@ -515,8 +741,12 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     let asics = ui
         .add(
             c.node,
-            Table::<Message>::inert([Column::flex("Device"), Column::new("Where", u(170)), Column::new("Status", u(160))])
-                .with_style(st.body),
+            Table::<Message>::inert([
+                Column::flex("Device"),
+                Column::new("Where", u(170)),
+                Column::new("Status", u(160)),
+            ])
+            .with_style(st.body),
             c.inner,
         )
         .expect("asics");
@@ -526,8 +756,18 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
 
     // ------------------------------------------------ work
     let work = pages[2];
-    let c = card(ui, st, work, Rect::new(margin, 0, inner_w, u(150)), "Anatomy of the header being hashed");
-    ui.add(c.node, HeaderMap::new(st.small, st.small), Rect::new(c.inner.x, c.inner.y, c.inner.width, u(60)));
+    let c = card(
+        ui,
+        st,
+        work,
+        Rect::new(margin, 0, inner_w, u(150)),
+        "Anatomy of the header being hashed",
+    );
+    ui.add(
+        c.node,
+        HeaderMap::new(st.small, st.small),
+        Rect::new(c.inner.x, c.inner.y, c.inner.width, u(60)),
+    );
     text(
         ui,
         c.node,
@@ -541,7 +781,13 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     );
     let job_rows = if inner_w >= u(900) { 7 } else { 14 };
     let job_h = u(66) + job_rows * u(26);
-    let c = card(ui, st, work, Rect::new(margin, u(150) + gap, inner_w, job_h), "Current job");
+    let c = card(
+        ui,
+        st,
+        work,
+        Rect::new(margin, u(150) + gap, inner_w, job_h),
+        "Current job",
+    );
     let mut job_values = Vec::new();
     let job_labels: [(&str, bool); 14] = [
         ("Height", false),
@@ -565,30 +811,75 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
     for (i, (label, mono)) in job_labels.iter().enumerate() {
         let (x, cw) = kcols[i / per_col];
         let row = (i % per_col) as i32;
-        job_values.push(key_value(ui, st, c.node, x, c.inner.y + row * u(26), cw, label, *mono));
+        job_values.push(key_value(
+            ui,
+            st,
+            c.node,
+            x,
+            c.inner.y + row * u(26),
+            cw,
+            label,
+            *mono,
+        ));
     }
     let cb_y = u(150) + gap + job_h + gap;
-    let c = card(ui, st, work, Rect::new(margin, cb_y, inner_w, u(170)), "Coinbase transaction");
-    let coinbase = text(ui, c.node, Text::new("No work yet.", st.mono).wrapped(), c.inner);
+    let c = card(
+        ui,
+        st,
+        work,
+        Rect::new(margin, cb_y, inner_w, u(170)),
+        "Coinbase transaction",
+    );
+    let coinbase = text(
+        ui,
+        c.node,
+        Text::new("No work yet.", st.mono).wrapped(),
+        c.inner,
+    );
     if cb_y + u(170) + gap > content.height {
         ui.set_scrollable(work, true);
     }
 
     // ------------------------------------------------ shares
     let shares_page = pages[3];
-    let n = if inner_w >= u(900) { 5 } else if inner_w >= u(520) { 3 } else { 2 };
+    let n = if inner_w >= u(900) {
+        5
+    } else if inner_w >= u(520) {
+        3
+    } else {
+        2
+    };
     let cols = columns(margin, inner_w, n, gap);
     let mut share_values = Vec::new();
     let small_h = u(90);
-    for (i, title) in ["Submitted", "Accepted", "Rejected", "Stale", "Blocks found"].iter().enumerate() {
+    for (i, title) in ["Submitted", "Accepted", "Rejected", "Stale", "Blocks found"]
+        .iter()
+        .enumerate()
+    {
         let (x, cw) = cols[i % n as usize];
         let y = (i as i32 / n) * (small_h + gap);
         let c = card(ui, st, shares_page, Rect::new(x, y, cw, small_h), "");
-        text(ui, c.node, Text::new(*title, st.small).muted(), Rect::new(c.inner.x, c.inner.y - u(2), c.inner.width, u(18)));
-        share_values.push(text(ui, c.node, Text::new("0", st.big), Rect::new(c.inner.x, c.inner.y + u(20), c.inner.width, u(30))));
+        text(
+            ui,
+            c.node,
+            Text::new(*title, st.small).muted(),
+            Rect::new(c.inner.x, c.inner.y - u(2), c.inner.width, u(18)),
+        );
+        share_values.push(text(
+            ui,
+            c.node,
+            Text::new("0", st.big),
+            Rect::new(c.inner.x, c.inner.y + u(20), c.inner.width, u(30)),
+        ));
     }
     let ty = ((5 + n - 1) / n) * (small_h + gap);
-    let c = card(ui, st, shares_page, Rect::new(margin, ty, inner_w, (content.height - ty - gap).max(u(260))), "Recent shares (UTC)");
+    let c = card(
+        ui,
+        st,
+        shares_page,
+        Rect::new(margin, ty, inner_w, (content.height - ty - gap).max(u(260))),
+        "Recent shares (UTC)",
+    );
     let shares = ui
         .add(
             c.node,
@@ -605,18 +896,38 @@ pub fn build(ui: &mut Ui<Message>, st: &Styles, draft: &Config, page: usize, win
         .expect("shares");
 
     // ------------------------------------------------ log
-    let c = card(ui, st, pages[4], Rect::new(margin, 0, inner_w, content.height - gap), "Events, newest first (UTC)");
+    let c = card(
+        ui,
+        st,
+        pages[4],
+        Rect::new(margin, 0, inner_w, content.height - gap),
+        "Events, newest first (UTC)",
+    );
     let log = ui
         .add(
             c.node,
-            Table::<Message>::inert([Column::new("Time", u(100)), Column::new("Level", u(90)), Column::flex("Message")])
-                .with_style(st.body),
+            Table::<Message>::inert([
+                Column::new("Time", u(100)),
+                Column::new("Level", u(90)),
+                Column::flex("Message"),
+            ])
+            .with_style(st.body),
             c.inner,
         )
         .expect("log");
 
     // ------------------------------------------------ settings
-    let form = build_settings(ui, st, pages[PAGE_SETTINGS], draft, margin, inner_w, content.height, gap, windowed);
+    let form = build_settings(
+        ui,
+        st,
+        pages[PAGE_SETTINGS],
+        draft,
+        margin,
+        inner_w,
+        content.height,
+        gap,
+        windowed,
+    );
 
     Nodes {
         container,
@@ -670,14 +981,28 @@ fn build_settings(
     let field_h = ui.theme().metrics.size_field;
     let row = field_h + u(34);
     let two = inner_w >= u(900);
-    let cols = if two { columns(margin, inner_w, 2, gap) } else { vec![(margin, inner_w), (margin, inner_w)] };
+    let cols = if two {
+        columns(margin, inner_w, 2, gap)
+    } else {
+        vec![(margin, inner_w), (margin, inner_w)]
+    };
 
     // A caption over a control, which is how daisyUI's `fieldset` reads.
     let field = |ui: &mut Ui<Message>, parent: NodeId, x: i32, y: i32, w: i32, caption: &str| {
-        text(ui, parent, Text::new(caption, st.small).muted(), Rect::new(x, y, w, u(18)));
+        text(
+            ui,
+            parent,
+            Text::new(caption, st.small).muted(),
+            Rect::new(x, y, w, u(18)),
+        );
         Rect::new(x, y + u(22), w, field_h)
     };
-    let input = |ui: &mut Ui<Message>, parent: NodeId, rect: Rect, value: &str, placeholder: &str, password: bool| {
+    let input = |ui: &mut Ui<Message>,
+                 parent: NodeId,
+                 rect: Rect,
+                 value: &str,
+                 placeholder: &str,
+                 password: bool| {
         let mut widget = TextInput::<Message>::new()
             .with_placeholder(placeholder)
             .with_style(st.body)
@@ -691,22 +1016,44 @@ fn build_settings(
     let (lx, lw) = cols[0];
     let payout_h = u(58) + row * 2;
     let c = card(ui, st, page, Rect::new(lx, 0, lw, payout_h), "Payout");
-    let r = field(ui, c.node, c.inner.x, c.inner.y, c.inner.width, "Bitcoin address that receives the block reward");
+    let r = field(
+        ui,
+        c.node,
+        c.inner.x,
+        c.inner.y,
+        c.inner.width,
+        "Bitcoin address that receives the block reward",
+    );
     let address = input(ui, c.node, r, &draft.payout_address, "bc1q…", false);
-    let r = field(ui, c.node, c.inner.x, c.inner.y + row, c.inner.width, "Worker name");
+    let r = field(
+        ui,
+        c.node,
+        c.inner.x,
+        c.inner.y + row,
+        c.inner.width,
+        "Worker name",
+    );
     let worker = input(ui, c.node, r, &draft.worker_name, "hansolo", false);
 
     // -------- work source
     let source_y = payout_h + gap;
     let source_h = u(58) + row * 4;
-    let c = card(ui, st, page, Rect::new(lx, source_y, lw, source_h), "Work source");
+    let c = card(
+        ui,
+        st,
+        page,
+        Rect::new(lx, source_y, lw, source_h),
+        "Work source",
+    );
     let is_node = matches!(draft.source, WorkSource::Node { .. });
     let half = columns(c.inner.x, c.inner.width, 2, u(12));
     let r = field(ui, c.node, half[0].0, c.inner.y, half[0].1, "Mode");
     let source = ui
         .add(
             c.node,
-            Select::new(SOURCES, Message::OpenSource).with_selected(Some(is_node as usize)).with_style(st.body),
+            Select::new(SOURCES, Message::OpenSource)
+                .with_selected(Some(is_node as usize))
+                .with_style(st.body),
             r,
         )
         .expect("source");
@@ -721,37 +1068,83 @@ fn build_settings(
     let ghalf = columns(gx, gw, 2, u(12));
 
     let (url_value, user_value, pass_value) = match &draft.source {
-        WorkSource::Stratum { url, username, password } => (url.clone(), username.clone().unwrap_or_default(), password.clone()),
+        WorkSource::Stratum {
+            url,
+            username,
+            password,
+        } => (
+            url.clone(),
+            username.clone().unwrap_or_default(),
+            password.clone(),
+        ),
         WorkSource::Node { .. } => (WorkSource::default_url(), String::new(), "x".into()),
     };
-    let preset_index = PRESETS.iter().position(|(_, u)| *u == url_value).unwrap_or(PRESETS.len() - 1);
+    let preset_index = PRESETS
+        .iter()
+        .position(|(_, u)| *u == url_value)
+        .unwrap_or(PRESETS.len() - 1);
     let r = field(ui, c.node, half[1].0, c.inner.y, half[1].1, "Pool");
     let preset = ui
         .add(
             c.node,
-            Select::new(PRESETS.map(|(name, _)| name), Message::OpenPreset).with_selected(Some(preset_index)).with_style(st.body),
+            Select::new(PRESETS.map(|(name, _)| name), Message::OpenPreset)
+                .with_selected(Some(preset_index))
+                .with_style(st.body),
             r,
         )
         .expect("preset");
     ui.set_visible(preset, !is_node);
     let r = field(ui, pool_group, gx, 0, gw, "Stratum URL");
-    let url = input(ui, pool_group, r, &url_value, "stratum+tcp://host:port", false);
-    let r = field(ui, pool_group, ghalf[0].0, row, ghalf[0].1, "Username (blank: address.worker)");
+    let url = input(
+        ui,
+        pool_group,
+        r,
+        &url_value,
+        "stratum+tcp://host:port",
+        false,
+    );
+    let r = field(
+        ui,
+        pool_group,
+        ghalf[0].0,
+        row,
+        ghalf[0].1,
+        "Username (blank: address.worker)",
+    );
     let username = input(ui, pool_group, r, &user_value, "", false);
     let r = field(ui, pool_group, ghalf[1].0, row, ghalf[1].1, "Password");
     let password = input(ui, pool_group, r, &pass_value, "x", false);
     text(
         ui,
         pool_group,
-        Text::new("Solo pools pay the whole block to your address when you find it, minus a small fee.", st.small).muted().wrapped(),
+        Text::new(
+            "Solo pools pay the whole block to your address when you find it, minus a small fee.",
+            st.small,
+        )
+        .muted()
+        .wrapped(),
         Rect::new(gx, row * 2 + u(6), gw, u(40)),
     );
 
     let (rpc, rpc_u, rpc_p, cookie_value) = match &draft.source {
-        WorkSource::Node { rpc_url, rpc_user, rpc_password, cookie_file, .. } => {
-            (rpc_url.clone(), rpc_user.clone(), rpc_password.clone(), cookie_file.clone().unwrap_or_default())
-        }
-        WorkSource::Stratum { .. } => ("http://127.0.0.1:8332".into(), String::new(), String::new(), String::new()),
+        WorkSource::Node {
+            rpc_url,
+            rpc_user,
+            rpc_password,
+            cookie_file,
+            ..
+        } => (
+            rpc_url.clone(),
+            rpc_user.clone(),
+            rpc_password.clone(),
+            cookie_file.clone().unwrap_or_default(),
+        ),
+        WorkSource::Stratum { .. } => (
+            "http://127.0.0.1:8332".into(),
+            String::new(),
+            String::new(),
+            String::new(),
+        ),
     };
     let r = field(ui, node_group, gx, 0, gw, "RPC URL");
     let rpc_url = input(ui, node_group, r, &rpc, "http://127.0.0.1:8332", false);
@@ -759,8 +1152,22 @@ fn build_settings(
     let rpc_user = input(ui, node_group, r, &rpc_u, "", false);
     let r = field(ui, node_group, ghalf[1].0, row, ghalf[1].1, "RPC password");
     let rpc_password = input(ui, node_group, r, &rpc_p, "", true);
-    let r = field(ui, node_group, gx, row * 2, gw, "Cookie file (instead of user and password)");
-    let cookie = input(ui, node_group, r, &cookie_value, "~/.bitcoin/.cookie", false);
+    let r = field(
+        ui,
+        node_group,
+        gx,
+        row * 2,
+        gw,
+        "Cookie file (instead of user and password)",
+    );
+    let cookie = input(
+        ui,
+        node_group,
+        r,
+        &cookie_value,
+        "~/.bitcoin/.cookie",
+        false,
+    );
 
     // -------- hardware
     let (rx, rw) = cols[1];
@@ -769,17 +1176,56 @@ fn build_settings(
     let hw_h = u(58) + toggle_h * 5 + row * 3 + u(20);
     let c = card(ui, st, page, Rect::new(rx, hw_y, rw, hw_h), "Hardware");
     let mut y = c.inner.y;
-    let toggle = |ui: &mut Ui<Message>, parent: NodeId, y: i32, label: &str, on: bool, message: fn(bool) -> Message| {
-        ui.add(parent, Toggle::new(label, message).with_checked(on).with_style(st.body), Rect::new(c.inner.x, y, c.inner.width, toggle_h))
-            .expect("toggle")
+    let toggle = |ui: &mut Ui<Message>,
+                  parent: NodeId,
+                  y: i32,
+                  label: &str,
+                  on: bool,
+                  message: fn(bool) -> Message| {
+        ui.add(
+            parent,
+            Toggle::new(label, message)
+                .with_checked(on)
+                .with_style(st.body),
+            Rect::new(c.inner.x, y, c.inner.width, toggle_h),
+        )
+        .expect("toggle")
     };
-    let cpu = toggle(ui, c.node, y, "Mine on the CPU", draft.cpu.enabled, Message::CpuEnabled);
+    let cpu = toggle(
+        ui,
+        c.node,
+        y,
+        "Mine on the CPU",
+        draft.cpu.enabled,
+        Message::CpuEnabled,
+    );
     y += toggle_h + u(4);
-    let low_priority = toggle(ui, c.node, y, "Low priority (keep the machine responsive)", draft.cpu.low_priority, Message::LowPriority);
+    let low_priority = toggle(
+        ui,
+        c.node,
+        y,
+        "Low priority (keep the machine responsive)",
+        draft.cpu.low_priority,
+        Message::LowPriority,
+    );
     y += toggle_h + u(8);
     let half = columns(c.inner.x, c.inner.width, 2, u(12));
-    let r = field(ui, c.node, half[0].0, y, half[0].1, "Threads (blank: all cores)");
-    let threads = input(ui, c.node, r, &draft.cpu.threads.map(|t| t.to_string()).unwrap_or_default(), "auto", false);
+    let r = field(
+        ui,
+        c.node,
+        half[0].0,
+        y,
+        half[0].1,
+        "Threads (blank: all cores)",
+    );
+    let threads = input(
+        ui,
+        c.node,
+        r,
+        &draft.cpu.threads.map(|t| t.to_string()).unwrap_or_default(),
+        "auto",
+        false,
+    );
     let r = field(ui, c.node, half[1].0, y, half[1].1, "CPU hashing path");
     let backend_index = draft
         .cpu
@@ -788,10 +1234,23 @@ fn build_settings(
         .and_then(|b| CPU_BACKENDS.iter().position(|n| n.eq_ignore_ascii_case(b)))
         .unwrap_or(0);
     let cpu_backend = ui
-        .add(c.node, Select::new(CPU_BACKENDS, Message::OpenCpuBackend).with_selected(Some(backend_index)).with_style(st.body), r)
+        .add(
+            c.node,
+            Select::new(CPU_BACKENDS, Message::OpenCpuBackend)
+                .with_selected(Some(backend_index))
+                .with_style(st.body),
+            r,
+        )
         .expect("backend");
     y += row + u(4);
-    let gpu = toggle(ui, c.node, y, "Mine on graphics processors", draft.gpu.enabled, Message::GpuEnabled);
+    let gpu = toggle(
+        ui,
+        c.node,
+        y,
+        "Mine on graphics processors",
+        draft.gpu.enabled,
+        Message::GpuEnabled,
+    );
     y += toggle_h + u(4);
     let intensity_label = text(
         ui,
@@ -807,12 +1266,40 @@ fn build_settings(
         )
         .expect("slider");
     y += u(56);
-    let asic = toggle(ui, c.node, y, "Use ASIC miners", draft.asic.enabled, Message::AsicEnabled);
+    let asic = toggle(
+        ui,
+        c.node,
+        y,
+        "Use ASIC miners",
+        draft.asic.enabled,
+        Message::AsicEnabled,
+    );
     y += toggle_h + u(4);
-    let usb = toggle(ui, c.node, y, "Probe USB serial ports", draft.asic.usb, Message::Usb);
+    let usb = toggle(
+        ui,
+        c.node,
+        y,
+        "Probe USB serial ports",
+        draft.asic.usb,
+        Message::Usb,
+    );
     y += toggle_h + u(8);
-    let r = field(ui, c.node, c.inner.x, y, c.inner.width, "AxeOS network miners (Bitaxe, NerdQAxe), comma separated");
-    let network_devices = input(ui, c.node, r, &draft.asic.network_devices.join(", "), "192.168.1.50, bitaxe.local", false);
+    let r = field(
+        ui,
+        c.node,
+        c.inner.x,
+        y,
+        c.inner.width,
+        "AxeOS network miners (Bitaxe, NerdQAxe), comma separated",
+    );
+    let network_devices = input(
+        ui,
+        c.node,
+        r,
+        &draft.asic.network_devices.join(", "),
+        "192.168.1.50, bitaxe.local",
+        false,
+    );
 
     // -------- interface
     let ui_y = hw_y + hw_h + gap;
@@ -820,14 +1307,33 @@ fn build_settings(
     let ui_w = if two { rw } else { lw };
     let ui_h = u(58) + row + toggle_h + u(40);
     let c = card(ui, st, page, Rect::new(ui_x, ui_y, ui_w, ui_h), "Interface");
-    let r = field(ui, c.node, c.inner.x, c.inner.y, c.inner.width.min(u(260)), if windowed { "Theme" } else { "Theme (System is dark on a bare display)" });
+    let r = field(
+        ui,
+        c.node,
+        c.inner.x,
+        c.inner.y,
+        c.inner.width.min(u(260)),
+        if windowed {
+            "Theme"
+        } else {
+            "Theme (System is dark on a bare display)"
+        },
+    );
     let theme = ui
-        .add(c.node, Select::new(THEMES, Message::OpenTheme).with_selected(Some(theme_index(draft.ui.theme))).with_style(st.body), r)
+        .add(
+            c.node,
+            Select::new(THEMES, Message::OpenTheme)
+                .with_selected(Some(theme_index(draft.ui.theme)))
+                .with_style(st.body),
+            r,
+        )
         .expect("theme");
     let autostart = ui
         .add(
             c.node,
-            Toggle::new("Start mining when HanSolo opens", Message::Autostart).with_checked(draft.autostart).with_style(st.body),
+            Toggle::new("Start mining when HanSolo opens", Message::Autostart)
+                .with_checked(draft.autostart)
+                .with_style(st.body),
             Rect::new(c.inner.x, c.inner.y + row, c.inner.width, toggle_h),
         )
         .expect("autostart");
@@ -835,20 +1341,43 @@ fn build_settings(
     // -------- actions, under whichever column is longer
     let left_bottom = source_y + source_h;
     let right_bottom = ui_y + ui_h;
-    let actions_y = if two { left_bottom.max(right_bottom) } else { right_bottom } + gap;
+    let actions_y = if two {
+        left_bottom.max(right_bottom)
+    } else {
+        right_bottom
+    } + gap;
     let bw = u(150);
-    ui.add(page, Button::new("Save", Message::Save).with_role(Role::Primary).with_style(st.title), Rect::new(margin, actions_y, bw, field_h));
     ui.add(
         page,
-        Button::new("Save and restart", Message::SaveRestart).with_role(Role::Secondary).with_style(st.title),
+        Button::new("Save", Message::Save)
+            .with_role(Role::Primary)
+            .with_style(st.title),
+        Rect::new(margin, actions_y, bw, field_h),
+    );
+    ui.add(
+        page,
+        Button::new("Save and restart", Message::SaveRestart)
+            .with_role(Role::Secondary)
+            .with_style(st.title),
         Rect::new(margin + bw + u(12), actions_y, bw + u(20), field_h),
     );
-    ui.add(page, Button::new("Revert", Message::Revert).with_role(Role::Neutral).with_style(st.body), Rect::new(margin + 2 * bw + u(44), actions_y, u(110), field_h));
+    ui.add(
+        page,
+        Button::new("Revert", Message::Revert)
+            .with_role(Role::Neutral)
+            .with_style(st.body),
+        Rect::new(margin + 2 * bw + u(44), actions_y, u(110), field_h),
+    );
     let message = text(
         ui,
         page,
         Text::new("", st.body),
-        Rect::new(margin + 2 * bw + u(170), actions_y, inner_w - 2 * bw - u(170), field_h),
+        Rect::new(
+            margin + 2 * bw + u(170),
+            actions_y,
+            inner_w - 2 * bw - u(170),
+            field_h,
+        ),
     );
     if actions_y + field_h + gap > height {
         ui.set_scrollable(page, true);

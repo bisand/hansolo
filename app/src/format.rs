@@ -29,7 +29,13 @@ pub fn si(value: f64) -> String {
         v /= 1000.0;
         i += 1;
     }
-    let digits = if v >= 100.0 { 0 } else if v >= 10.0 { 1 } else { 2 };
+    let digits = if v >= 100.0 {
+        0
+    } else if v >= 10.0 {
+        1
+    } else {
+        2
+    };
     format!("{v:.digits$} {}", SI[i])
 }
 
@@ -130,7 +136,12 @@ pub fn clock(at: SystemTime) -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    format!("{:02}:{:02}:{:02}", secs / 3600 % 24, secs / 60 % 60, secs % 60)
+    format!(
+        "{:02}:{:02}:{:02}",
+        secs / 3600 % 24,
+        secs / 60 % 60,
+        secs % 60
+    )
 }
 
 #[cfg(test)]

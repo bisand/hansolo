@@ -35,9 +35,7 @@ pub fn compress_words(state: &mut [u32; 8], w: &mut [u32; 64]) {
         w[i] = w[i - 16]
             .wrapping_add(w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3))
             .wrapping_add(w[i - 7])
-            .wrapping_add(
-                w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10),
-            );
+            .wrapping_add(w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10));
     }
     let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = *state;
     for i in 0..64 {

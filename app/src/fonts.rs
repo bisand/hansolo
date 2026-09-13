@@ -121,7 +121,10 @@ fn collect(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
         if path.is_dir() {
             collect(&path, depth + 1, out);
         } else if matches!(
-            path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).as_deref(),
+            path.extension()
+                .and_then(|e| e.to_str())
+                .map(str::to_ascii_lowercase)
+                .as_deref(),
             Some("ttf" | "otf" | "ttc")
         ) {
             out.push(path);

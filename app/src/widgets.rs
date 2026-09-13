@@ -90,7 +90,11 @@ impl Text {
             Tone::Content => content,
             Tone::Muted => {
                 let muted = content.mix(surface, 90);
-                if contrast_x100(surface, muted) >= AA_LARGE { muted } else { content }
+                if contrast_x100(surface, muted) >= AA_LARGE {
+                    muted
+                } else {
+                    content
+                }
             }
             Tone::Role(role) => theme.color(role),
         }
@@ -183,12 +187,19 @@ impl<M: 'static> Widget<M> for Chart {
         let theme = ctx.theme;
         let b = ctx.bounds;
         let label_h = ctx.text.line_height(self.style) + 4;
-        let plot = Rect::new(b.x, b.y + label_h / 2, b.width, b.height - label_h - label_h / 2);
+        let plot = Rect::new(
+            b.x,
+            b.y + label_h / 2,
+            b.width,
+            b.height - label_h - label_h / 2,
+        );
         if plot.width < 8 || plot.height < 8 {
             return;
         }
         let grid = theme.color(Role::Base300);
-        let muted = theme.content_of(Role::Base100).mix(theme.color(Role::Base100), 110);
+        let muted = theme
+            .content_of(Role::Base100)
+            .mix(theme.color(Role::Base100), 110);
         let line = theme.color(Role::Primary);
         let fill = line.with_alpha(44);
         let surface = theme.color(Role::Base100);
@@ -207,7 +218,12 @@ impl<M: 'static> Widget<M> for Chart {
                 let y = plot.bottom() - plot.height * i / 4;
                 let text = format::hashrate(top * i as f64 / 4.0);
                 let size = engine.measure(self.style, &text);
-                let chip = Rect::new(plot.x + 2, y + 2, size.width as i32 + 8, size.height as i32 + 2);
+                let chip = Rect::new(
+                    plot.x + 2,
+                    y + 2,
+                    size.width as i32 + 8,
+                    size.height as i32 + 2,
+                );
                 pen.fill_rounded_rect(chip, 4, surface.with_alpha(200));
                 engine.draw(pen, self.style, Point::new(plot.x + 6, y + 3), &text, muted);
             }
@@ -221,7 +237,13 @@ impl<M: 'static> Widget<M> for Chart {
         for (at, text) in axis {
             let w = ctx.text.measure_line(self.style, &text);
             let x = plot.x + ((plot.width - w) as f64 * at) as i32;
-            ctx.text.draw(pen, self.style, Point::new(x, plot.bottom() + 4), &text, muted);
+            ctx.text.draw(
+                pen,
+                self.style,
+                Point::new(x, plot.bottom() + 4),
+                &text,
+                muted,
+            );
         }
 
         if self.samples.len() < 2 || top <= 0.0 {
@@ -234,9 +256,11 @@ impl<M: 'static> Widget<M> for Chart {
 
         // Samples occupy the right-hand end of a `window`-wide axis.
         let n = self.samples.len();
-        let first_x = plot.x + plot.width - ((n - 1) as i64 * plot.width as i64 / (window - 1) as i64) as i32;
+        let first_x =
+            plot.x + plot.width - ((n - 1) as i64 * plot.width as i64 / (window - 1) as i64) as i32;
         let value_at = |x: i32| -> f64 {
-            let pos = (x - first_x) as f64 / (plot.right() - first_x).max(1) as f64 * (n - 1) as f64;
+            let pos =
+                (x - first_x) as f64 / (plot.right() - first_x).max(1) as f64 * (n - 1) as f64;
             let i = pos.floor().clamp(0.0, (n - 1) as f64) as usize;
             let j = (i + 1).min(n - 1);
             let t = pos - i as f64;
@@ -251,7 +275,11 @@ impl<M: 'static> Widget<M> for Chart {
             let here = Point::new(x, y);
             if let Some(prev) = previous {
                 pen.draw_line(prev, here, line);
-                pen.draw_line(Point::new(prev.x, prev.y - 1), Point::new(here.x, here.y - 1), line);
+                pen.draw_line(
+                    Point::new(prev.x, prev.y - 1),
+                    Point::new(here.x, here.y - 1),
+                    line,
+                );
             }
             previous = Some(here);
         }
@@ -315,23 +343,58 @@ impl<M: 'static> Widget<M> for Bars {
         let content = theme.content_of(Role::Base100);
         let muted = content.mix(theme.color(Role::Base100), 90);
         if self.rows.is_empty() {
-            ctx.text.draw(pen, self.style, Point::new(b.x, b.y), "No benchmark yet — start mining to measure.", muted);
+            ctx.text.draw(
+                pen,
+                self.style,
+                Point::new(b.x, b.y),
+                "No benchmark yet — start mining to measure.",
+                muted,
+            );
             return;
         }
-        let max = self.rows.iter().map(|r| r.value).fold(0.0, f64::max).max(1.0);
+        let max = self
+            .rows
+            .iter()
+            .map(|r| r.value)
+            .fold(0.0, f64::max)
+            .max(1.0);
         let radius = theme.radius(denise::Radius::Selector).min(6);
         for (i, row) in self.rows.iter().enumerate() {
             let y = b.y + i as i32 * (lh * 2 + 10);
-            ctx.text.draw(pen, self.style, Point::new(b.x, y), &row.label, if row.highlight { content } else { muted });
+            ctx.text.draw(
+                pen,
+                self.style,
+                Point::new(b.x, y),
+                &row.label,
+                if row.highlight { content } else { muted },
+            );
             let vw = ctx.text.measure_line(self.style, &row.value_text);
-            ctx.text.draw(pen, self.style, Point::new(b.right() - vw, y), &row.value_text, content);
+            ctx.text.draw(
+                pen,
+                self.style,
+                Point::new(b.right() - vw, y),
+                &row.value_text,
+                content,
+            );
             let track = Rect::new(b.x, y + lh + 3, b.width, lh.clamp(6, 10));
             pen.fill_rounded_rect(track, radius, theme.color(Role::Base300));
             let w = ((row.value / max) * track.width as f64).round() as i32;
             if w > 0 {
-                let role = if row.highlight { Role::Primary } else { Role::Neutral };
-                let color = if row.highlight { theme.color(role) } else { content.mix(theme.color(Role::Base300), 150) };
-                pen.fill_rounded_rect(Rect::new(track.x, track.y, w.max(radius * 2), track.height), radius, color);
+                let role = if row.highlight {
+                    Role::Primary
+                } else {
+                    Role::Neutral
+                };
+                let color = if row.highlight {
+                    theme.color(role)
+                } else {
+                    content.mix(theme.color(Role::Base300), 150)
+                };
+                pen.fill_rounded_rect(
+                    Rect::new(track.x, track.y, w.max(radius * 2), track.height),
+                    radius,
+                    color,
+                );
             }
         }
     }
@@ -366,23 +429,41 @@ impl<M: 'static> Widget<M> for HeaderMap {
         let gap = 3;
         let usable = b.width - gap * (SEGMENTS.len() as i32 - 1);
         let radius = theme.radius(denise::Radius::Field).min(bar_h / 2);
-        let muted = theme.content_of(Role::Base100).mix(theme.color(Role::Base100), 90);
+        let muted = theme
+            .content_of(Role::Base100)
+            .mix(theme.color(Role::Base100), 90);
         let mut x = b.x;
         for (i, (name, bytes, role)) in SEGMENTS.iter().enumerate() {
-            let w = if i == SEGMENTS.len() - 1 { b.right() - x } else { usable * bytes / 80 };
+            let w = if i == SEGMENTS.len() - 1 {
+                b.right() - x
+            } else {
+                usable * bytes / 80
+            };
             let (fill, content) = theme.pair(*role);
             pen.fill_rounded_rect(Rect::new(x, b.y, w, bar_h), radius, fill);
             let label = format!("{bytes}");
             let lw = ctx.text.measure_line(self.small, &label);
             let lh = ctx.text.line_height(self.small);
             if lw + 6 < w {
-                ctx.text.draw(pen, self.small, Point::new(x + (w - lw) / 2, b.y + (bar_h - lh) / 2), &label, content);
+                ctx.text.draw(
+                    pen,
+                    self.small,
+                    Point::new(x + (w - lw) / 2, b.y + (bar_h - lh) / 2),
+                    &label,
+                    content,
+                );
             }
             // Names under the bar, only where there is room for them; the
             // narrow fields are named in the legend the page draws beside it.
             let nw = ctx.text.measure_line(self.style, name);
             if nw + 8 < w {
-                ctx.text.draw(pen, self.style, Point::new(x + (w - nw) / 2, b.y + bar_h + 6), name, muted);
+                ctx.text.draw(
+                    pen,
+                    self.style,
+                    Point::new(x + (w - nw) / 2, b.y + bar_h + 6),
+                    name,
+                    muted,
+                );
             }
             x += w + gap;
         }
@@ -441,10 +522,21 @@ impl<M: 'static> Widget<M> for Pills {
                 tx += h / 2;
                 fg
             } else {
-                pen.stroke_rounded_rect(rect, h / 2, 1, theme.color(Role::Base300).mix(content, 40));
+                pen.stroke_rounded_rect(
+                    rect,
+                    h / 2,
+                    1,
+                    theme.color(Role::Base300).mix(content, 40),
+                );
                 content.mix(base, 110)
             };
-            ctx.text.draw(pen, self.style, Point::new(tx, y + (h - lh) / 2), name, color);
+            ctx.text.draw(
+                pen,
+                self.style,
+                Point::new(tx, y + (h - lh) / 2),
+                name,
+                color,
+            );
             x += w + gap;
         }
     }
