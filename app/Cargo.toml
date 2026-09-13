@@ -1,6 +1,42 @@
 [package]
 name = "hansolo"
+description = "A Bitcoin solo lottery miner with a DeniseUI dashboard, for desktops and bare Linux displays."
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "hansolo"
+path = "src/main.rs"
+
+# Which displays this binary can drive, decided at compile time the way Denise
+# wants it. Unlike a Denise example, a default Linux build carries *both*: the
+# same binary lands on a desktop and on a panel with no compositor, and it picks
+# between them at run time from what the session actually has (see `main.rs`).
+# `--no-default-features --features kiosk` gives the small panel-only build.
+[features]
+default = ["desktop", "kiosk"]
+desktop = ["dep:denise-winit", "dep:dark-light", "dep:arboard"]
+kiosk = ["dep:denise-drm", "dep:denise-fbdev", "dep:denise-evdev", "dep:rustix"]
 
 [dependencies]
+hansolo-core.workspace = true
+hansolo-engine.workspace = true
+denise.workspace = true
+denise-ui.workspace = true
+denise-text.workspace = true
+serde.workspace = true
+toml.workspace = true
+directories = "6"
+
+denise-winit = { workspace = true, optional = true }
+dark-light = { version = "3", optional = true }
+arboard = { version = "3", optional = true, default-features = false }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+denise-drm = { workspace = true, optional = true }
+denise-fbdev = { workspace = true, optional = true }
+denise-evdev = { workspace = true, optional = true }
+rustix = { version = "1", features = ["event", "std"], optional = true }

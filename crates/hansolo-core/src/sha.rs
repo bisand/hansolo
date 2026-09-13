@@ -22,8 +22,8 @@ pub const K: [u32; 64] = [
 #[inline]
 pub fn compress(state: &mut [u32; 8], block: &[u8; 64]) {
     let mut w = [0u32; 64];
-    for (i, chunk) in block.chunks_exact(4).enumerate() {
-        w[i] = u32::from_be_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+    for (word, chunk) in w.iter_mut().zip(block.as_chunks::<4>().0) {
+        *word = u32::from_be_bytes(*chunk);
     }
     compress_words(state, &mut w);
 }
@@ -65,19 +65,18 @@ pub fn compress_words(state: &mut [u32; 8], w: &mut [u32; 64]) {
 /// SHA-256 of an arbitrary message.
 pub fn sha256(data: &[u8]) -> [u8; 32] {
     let mut state = IV;
-    let mut chunks = data.chunks_exact(64);
-    for block in &mut chunks {
-        compress(&mut state, block.try_into().expect("64 bytes"));
+    let (blocks, rest) = data.as_chunks::<64>();
+    for block in blocks {
+        compress(&mut state, block);
     }
-    let rest = chunks.remainder();
     let mut tail = [0u8; 128];
     tail[..rest.len()].copy_from_slice(rest);
     tail[rest.len()] = 0x80;
     let blocks = if rest.len() < 56 { 1 } else { 2 };
     let bits = (data.len() as u64).wrapping_mul(8);
     tail[blocks * 64 - 8..blocks * 64].copy_from_slice(&bits.to_be_bytes());
-    for block in tail[..blocks * 64].chunks_exact(64) {
-        compress(&mut state, block.try_into().expect("64 bytes"));
+    for block in tail[..blocks * 64].as_chunks::<64>().0 {
+        compress(&mut state, block);
     }
     digest(&state)
 }
@@ -101,8 +100,8 @@ pub fn midstate(header: &[u8; 80]) -> [u32; 8] {
 #[inline]
 pub fn digest(state: &[u32; 8]) -> [u8; 32] {
     let mut out = [0u8; 32];
-    for (chunk, word) in out.chunks_exact_mut(4).zip(state) {
-        chunk.copy_from_slice(&word.to_be_bytes());
+    for (chunk, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(state) {
+        *chunk = word.to_be_bytes();
     }
     out
 }
@@ -114,9 +113,8 @@ pub fn digest(state: &[u32; 8]) -> [u8; 32] {
 #[inline]
 pub fn header_hash_from_midstate(midstate: &[u32; 8], header: &[u8; 80]) -> [u8; 32] {
     let mut w = [0u32; 64];
-    for i in 0..4 {
-        let o = 64 + i * 4;
-        w[i] = u32::from_be_bytes([header[o], header[o + 1], header[o + 2], header[o + 3]]);
+    for (word, chunk) in w.iter_mut().zip(header[64..].as_chunks::<4>().0) {
+        *word = u32::from_be_bytes(*chunk);
     }
     w[4] = 0x8000_0000;
     w[15] = 640;

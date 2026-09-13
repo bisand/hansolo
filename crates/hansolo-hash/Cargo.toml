@@ -7,5 +7,37 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 
+[features]
+default = ["gpu", "asic"]
+# wgpu compute shader backend (Metal, Vulkan, DX12). Off for tiny kiosk builds.
+gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
+# USB serial detection and AxeOS network miners.
+asic = ["dep:serialport", "dep:ureq", "dep:serde_json"]
+
 [dependencies]
 hansolo-core.workspace = true
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+core_affinity = "0.8.3"
+
+# No GLES/WebGL: OpenGL compute is too limited to be worth it here.
+wgpu = { version = "30.0.1", optional = true, default-features = false, features = ["std", "parking_lot", "metal", "vulkan", "dx12", "wgsl"] }
+pollster = { version = "1.0.1", optional = true }
+bytemuck = { version = "1.25.2", optional = true }
+
+# No libudev: on Linux serialport then scans sysfs, which needs no C library
+# (and keeps cross-compilation from macOS working).
+serialport = { version = "4.10.1", default-features = false, optional = true }
+# Plain HTTP only: AxeOS serves its API unencrypted on the LAN, and leaving TLS
+# out avoids ring/aws-lc and their C toolchains.
+ureq = { version = "3.4.1", default-features = false, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.186"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_System_Threading"] }
+
+[dev-dependencies]
+hansolo-core.workspace = true
+crossbeam-channel.workspace = true

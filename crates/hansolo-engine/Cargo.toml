@@ -11,3 +11,17 @@ authors.workspace = true
 hansolo-core.workspace = true
 hansolo-hash.workspace = true
 parking_lot.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+crossbeam-channel.workspace = true
+hex.workspace = true
+
+# Address parsing, scriptPubKey derivation and (in tests) block validation.
+# No default features: we never sign, so nothing beyond `std` is needed.
+bitcoin = { version = "0.32", default-features = false, features = ["std"] }
+
+# TLS for stratum+ssl:// with the `ring` provider (no aws-lc/cmake) and a
+# compiled-in root store, so no OpenSSL or OS certificate store is involved.
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+webpki-roots = "1"
