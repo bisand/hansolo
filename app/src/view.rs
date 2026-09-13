@@ -515,8 +515,8 @@ pub fn build(
     let tw = c.inner.width - ring - u(18);
     let mut lottery_lines = Vec::new();
     let captions = [
-        "Best share vs. block",
-        "Zero bits",
+        "Best share / block",
+        "Zero bits, best / block",
         "Chance this year",
         "Expected wait",
     ];
