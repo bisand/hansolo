@@ -231,7 +231,8 @@ jobs:
           # MSI versions are numeric only: v1.2.3-rc.1 installs as 1.2.3.
           $msiVersion = $version -replace '[-+].*$', ''
           $arch = @{ x86_64 = 'x64'; aarch64 = 'arm64' }['${{ matrix.arch }}']
-          wix build -arch $arch -d Version=$msiVersion -d BinDir=target\release `
+          # -pdbtype none: no .wixpdb debug file next to the MSI in dist/.
+          wix build -arch $arch -pdbtype none -d Version=$msiVersion -d BinDir=target\release `
             -o "dist\hansolo-$version-${{ matrix.arch }}-windows.msi" packaging\windows\hansolo.wxs
       - uses: actions/upload-artifact@v4
         with:
