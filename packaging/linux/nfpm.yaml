@@ -60,8 +60,10 @@ overrides:
       - vulkan-loader
       - dejavu-sans-fonts
   archlinux:
-    packager: André Biseth <andre@biseth.net>
     # nfpm cannot write pacman optdepends, and Arch desktops have the window
     # and Vulkan libraries anyway.
     depends:
       - glibc
+
+archlinux:
+  packager: André Biseth <andre@biseth.net>
