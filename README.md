@@ -27,8 +27,10 @@ Every [release](https://github.com/bisand/hansolo/releases) carries ready builds
 | macOS 11+ (Apple Silicon and Intel) | `HanSolo-<version>.dmg`, or the `universal-macos.tar.gz` |
 | Windows (x64 and Arm64) | `hansolo-<version>-<arch>-windows.msi` installer, or the `.zip` |
 
-`SHA256SUMS` lists the checksums. The macOS app is not notarised, so the first
-launch needs right-click → **Open**. The Windows installer is unsigned too, so
+`SHA256SUMS` lists the checksums. The macOS builds are signed with a Developer ID
+and notarised once the repository has the signing secrets (see
+[`packaging/macos/README.md`](packaging/macos/README.md)); until then the first
+launch needs right-click → **Open**. The Windows installer is unsigned, so
 SmartScreen asks once (**More info** → **Run anyway**); it adds a Start menu
 shortcut and puts `hansolo` on the `PATH`.
 

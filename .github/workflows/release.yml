@@ -123,6 +123,8 @@ jobs:
   macos:
     name: macOS (universal)
     runs-on: macos-latest
+    env:
+      HAS_SIGNING_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -143,23 +145,44 @@ jobs:
             target/aarch64-apple-darwin/release/hansolo \
             target/x86_64-apple-darwin/release/hansolo
           lipo -info hansolo
-      - name: Package
+      # Signing and notarisation run when the repository has the secrets (see
+      # packaging/macos/README.md); without them the app is ad-hoc signed.
+      - name: Import Developer ID certificate
+        if: env.HAS_SIGNING_CERTIFICATE == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
-          mkdir -p dist
-          name="hansolo-$VERSION-universal-macos"
-          mkdir "$name"
-          cp hansolo README.md "$name/"
-          tar czf "dist/$name.tar.gz" "$name"
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -base64 32)
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/certificate.p12"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain" login.keychain-db
 
-          # HanSolo.app in a drag-to-Applications disk image. Ad-hoc signed
-          # only: Gatekeeper asks on first open (right-click > Open).
-          app=dmg/HanSolo.app
-          mkdir -p "$app/Contents/MacOS"
-          cp hansolo "$app/Contents/MacOS/"
-          sed "s/@VERSION@/$VERSION/g" packaging/macos/Info.plist > "$app/Contents/Info.plist"
-          codesign --force --deep --sign - "$app"
-          ln -s /Applications dmg/Applications
-          hdiutil create -volname HanSolo -srcfolder dmg -format UDZO -ov "dist/HanSolo-$VERSION.dmg"
+          identity=$(security find-identity -v -p codesigning "$keychain" \
+            | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)
+          if [ -z "$identity" ]; then
+            echo "::error::MACOS_CERTIFICATE holds no Developer ID Application identity"
+            exit 1
+          fi
+          echo "SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+          if [ -n "$APPLE_API_KEY" ]; then
+            echo "$APPLE_API_KEY" | base64 --decode > "$RUNNER_TEMP/api-key.p8"
+            echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/api-key.p8" >> "$GITHUB_ENV"
+          fi
+      - name: Package
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: packaging/macos/package.sh "$VERSION" hansolo
       - uses: actions/upload-artifact@v4
         with:
           name: dist-macos
