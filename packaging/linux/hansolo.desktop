@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=HanSolo
+GenericName=Bitcoin Solo Miner
+Comment=Bitcoin solo lottery miner
+Exec=hansolo --ui window
+Terminal=false
+Categories=Network;Finance;
+Keywords=bitcoin;mining;miner;

@@ -1,0 +1,55 @@
+<!--
+  Windows installer, built by the release workflow with the WiX dotnet tool:
+
+    wix build -arch x64 -d Version=0.1.0 -d BinDir=target\release ^
+      -o dist\hansolo.msi packaging\windows\hansolo.wxs
+
+  Installs hansolo.exe into Program Files, adds a Start menu shortcut and puts
+  the install folder on the system PATH. The fixed UpgradeCode lets a newer MSI
+  replace an older one in place.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="HanSolo"
+      Manufacturer="André Biseth"
+      Version="$(var.Version)"
+      UpgradeCode="A9149920-B0E6-4C1B-93B5-BDAA3DF7C43B"
+      Scope="perMachine">
+    <SummaryInformation Description="HanSolo — Bitcoin solo lottery miner" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of HanSolo is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="HanSolo">
+        <Component>
+          <File Source="$(var.BinDir)\hansolo.exe" KeyPath="yes" />
+          <Environment
+              Id="PATH"
+              Name="PATH"
+              Value="[INSTALLFOLDER]"
+              Action="set"
+              Part="last"
+              System="yes"
+              Permanent="no" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component>
+        <Shortcut
+            Name="HanSolo"
+            Description="Bitcoin solo lottery miner"
+            Target="[INSTALLFOLDER]hansolo.exe"
+            WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue
+            Root="HKLM"
+            Key="Software\HanSolo"
+            Name="StartMenuShortcut"
+            Type="integer"
+            Value="1"
+            KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+  </Package>
+</Wix>
