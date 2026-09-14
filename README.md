@@ -13,6 +13,30 @@ AxeOS network ASICs), and mines with the fastest.
 > millions of years. The dashboard shows exactly how long, on purpose. People
 > *do* win solo blocks with tiny miners every so often — which is the fun of it.
 
+## Installing
+
+Every [release](https://github.com/bisand/hansolo/releases) carries ready builds:
+
+| Platform | Download |
+| --- | --- |
+| Debian, Ubuntu, Mint, Raspberry Pi OS (64-bit) | `hansolo_<version>-1_amd64.deb` / `_arm64.deb` |
+| Fedora, RHEL, openSUSE | `hansolo-<version>-1.x86_64.rpm` / `.aarch64.rpm` |
+| Arch, Manjaro | `hansolo-<version>-1-x86_64.pkg.tar.zst` / `-aarch64` |
+| Any other Linux (glibc 2.31+) | `hansolo-<version>-<arch>-linux.tar.gz` |
+| Bare-display panels (static, no winit) | `hansolo-kiosk-<version>-<arch>-linux-musl.tar.gz` (aarch64, armv7) |
+| macOS 11+ (Apple Silicon and Intel) | `HanSolo-<version>.dmg`, or the `universal-macos.tar.gz` |
+| Windows (x64 and Arm64) | `hansolo-<version>-<arch>-windows.msi` installer, or the `.zip` |
+
+`SHA256SUMS` lists the checksums. The macOS builds are signed with a Developer ID
+and notarised once the repository has the signing secrets (see
+[`packaging/macos/README.md`](packaging/macos/README.md)); until then the first
+launch needs right-click → **Open**. The Windows installer is unsigned, so
+SmartScreen asks once (**More info** → **Run anyway**); it adds a Start menu
+shortcut and puts `hansolo` on the `PATH`.
+
+Publishing a GitHub release runs `.github/workflows/release.yml`, which builds all
+of these and attaches them to it.
+
 ## Running
 
 ```bash

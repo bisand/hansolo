@@ -1,0 +1,69 @@
+# .deb (Debian, Ubuntu, Mint, Raspberry Pi OS), .rpm (Fedora, RHEL, openSUSE)
+# and .pkg.tar.zst (Arch, Manjaro) from one description. The release workflow
+# stages the binary and sets the environment variables:
+#
+#   cp target/<triple>/release/hansolo target/nfpm/hansolo
+#   VERSION=0.1.0 ARCH=amd64 \
+#     nfpm package -f packaging/linux/nfpm.yaml -p deb -t dist/
+name: hansolo
+version: ${VERSION}
+release: "1"
+arch: ${ARCH}
+platform: linux
+section: net
+priority: optional
+maintainer: André Biseth <andre@biseth.net>
+vendor: André Biseth
+homepage: https://github.com/bisand/hansolo
+license: MIT
+description: |
+  A Bitcoin solo lottery miner with a DeniseUI dashboard.
+  Runs in a window on a desktop session, or directly on the display of a
+  Linux machine with no desktop (DRM/KMS or fbdev), and mines with the
+  fastest hashing path the hardware has: SHA extensions, AVX2/AVX-512,
+  GPU compute through Vulkan, or AxeOS network ASICs.
+
+contents:
+  - src: target/nfpm/hansolo
+    dst: /usr/bin/hansolo
+    file_info:
+      mode: 0755
+  - src: packaging/linux/hansolo.desktop
+    dst: /usr/share/applications/hansolo.desktop
+    file_info:
+      mode: 0644
+  - src: README.md
+    dst: /usr/share/doc/hansolo/README.md
+    file_info:
+      mode: 0644
+
+# The binary links only glibc; everything else is loaded at run time when the
+# session has it (winit dlopens X11/Wayland/xkbcommon, wgpu dlopens Vulkan), so
+# none of it is a hard dependency — a bare kiosk display needs none of them.
+overrides:
+  deb:
+    recommends:
+      - libxkbcommon-x11-0
+      - libwayland-client0
+      - libx11-6
+      - libxcursor1
+      - libxi6
+      - libvulkan1
+      - fonts-dejavu-core
+  rpm:
+    recommends:
+      - libxkbcommon-x11
+      - libwayland-client
+      - libX11
+      - libXcursor
+      - libXi
+      - vulkan-loader
+      - dejavu-sans-fonts
+  archlinux:
+    # nfpm cannot write pacman optdepends, and Arch desktops have the window
+    # and Vulkan libraries anyway.
+    depends:
+      - glibc
+
+archlinux:
+  packager: André Biseth <andre@biseth.net>

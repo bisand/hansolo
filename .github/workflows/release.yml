@@ -1,0 +1,259 @@
+name: Release
+
+# Publishing a GitHub release builds every target and attaches the binaries and
+# packages to it. Re-run by hand for an existing tag with "Run workflow". Pull
+# requests that touch packaging run the builds without uploading anything.
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/**
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and upload to (e.g. v0.1.0)
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_PROFILE_RELEASE_STRIP: symbols
+  TAG: ${{ github.event.release.tag_name || inputs.tag || 'v0.0.0' }}
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            deb: amd64
+          - arch: aarch64
+            deb: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name != 'pull_request' && env.TAG || '' }}
+      - name: Version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.arch }}-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.arch }}-linux-gnu
+      # zig links against an old glibc, so one binary runs on every distro
+      # from Debian 11 / Ubuntu 20.04 / RHEL 9 onwards.
+      - uses: mlugg/setup-zig@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - name: Build
+        run: cargo zigbuild -p hansolo --release --target ${{ matrix.arch }}-unknown-linux-gnu.2.31
+      - name: Install nfpm
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
+      - name: Package
+        env:
+          ARCH: ${{ matrix.deb }}
+        run: |
+          mkdir -p dist target/nfpm
+          cp target/${{ matrix.arch }}-unknown-linux-gnu/release/hansolo target/nfpm/
+          for p in deb rpm archlinux; do
+            "$(go env GOPATH)/bin/nfpm" package -f packaging/linux/nfpm.yaml -p "$p" -t dist/
+          done
+          name="hansolo-$VERSION-${{ matrix.arch }}-linux"
+          mkdir "$name"
+          cp target/nfpm/hansolo README.md "$name/"
+          tar czf "dist/$name.tar.gz" "$name"
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  kiosk:
+    name: Kiosk (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-musl
+            arch: aarch64
+          - target: armv7-unknown-linux-musleabihf
+            arch: armv7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name != 'pull_request' && env.TAG || '' }}
+      - name: Version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: mlugg/setup-zig@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - name: Build
+        run: cargo zigbuild -p hansolo --release --no-default-features --features kiosk --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          mkdir -p dist
+          name="hansolo-kiosk-$VERSION-${{ matrix.arch }}-linux-musl"
+          mkdir "$name"
+          cp target/${{ matrix.target }}/release/hansolo README.md "$name/"
+          tar czf "dist/$name.tar.gz" "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-kiosk-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  macos:
+    name: macOS (universal)
+    runs-on: macos-latest
+    env:
+      HAS_SIGNING_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name != 'pull_request' && env.TAG || '' }}
+      - name: Version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
+        run: |
+          cargo build -p hansolo --release --target aarch64-apple-darwin
+          cargo build -p hansolo --release --target x86_64-apple-darwin
+          lipo -create -output hansolo \
+            target/aarch64-apple-darwin/release/hansolo \
+            target/x86_64-apple-darwin/release/hansolo
+          lipo -info hansolo
+      # Signing and notarisation run when the repository has the secrets (see
+      # packaging/macos/README.md); without them the app is ad-hoc signed.
+      - name: Import Developer ID certificate
+        if: env.HAS_SIGNING_CERTIFICATE == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -base64 32)
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/certificate.p12"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain" login.keychain-db
+
+          identity=$(security find-identity -v -p codesigning "$keychain" \
+            | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)
+          if [ -z "$identity" ]; then
+            echo "::error::MACOS_CERTIFICATE holds no Developer ID Application identity"
+            exit 1
+          fi
+          echo "SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+          if [ -n "$APPLE_API_KEY" ]; then
+            echo "$APPLE_API_KEY" | base64 --decode > "$RUNNER_TEMP/api-key.p8"
+            echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/api-key.p8" >> "$GITHUB_ENV"
+          fi
+      - name: Package
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: packaging/macos/package.sh "$VERSION" hansolo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-macos
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    name: Windows (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-latest
+          - arch: aarch64
+            runner: windows-11-arm
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name != 'pull_request' && env.TAG || '' }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # ring needs clang for its assembly on Arm64 Windows.
+      - name: Put LLVM on PATH
+        if: matrix.arch == 'aarch64'
+        run: Add-Content $env:GITHUB_PATH "C:\Program Files\LLVM\bin"
+      - name: Build
+        run: cargo build -p hansolo --release
+      - name: Package
+        run: |
+          $version = $env:TAG -replace '^v', ''
+          $name = "hansolo-$version-${{ matrix.arch }}-windows"
+          New-Item -ItemType Directory -Force dist, $name | Out-Null
+          Copy-Item target/release/hansolo.exe, README.md $name
+          Compress-Archive -Path $name -DestinationPath "dist/$name.zip"
+      - name: Install WiX
+        # Pinned below v7, which needs an OSMF licence acceptance.
+        run: dotnet tool install --global wix --version 6.0.2
+      - name: MSI
+        run: |
+          $version = $env:TAG -replace '^v', ''
+          # MSI versions are numeric only: v1.2.3-rc.1 installs as 1.2.3.
+          $msiVersion = $version -replace '[-+].*$', ''
+          $arch = @{ x86_64 = 'x64'; aarch64 = 'arm64' }['${{ matrix.arch }}']
+          wix build -arch $arch -d Version=$msiVersion -d BinDir=target\release `
+            -o "dist\hansolo-$version-${{ matrix.arch }}-windows.msi" packaging\windows\hansolo.wxs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Upload to release
+    needs: [linux, kiosk, macos, windows]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * | tee SHA256SUMS
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
